@@ -21,10 +21,10 @@ class Game:
     def __init__(self):
         # 初始资源
         self.resources = {
-            "gold": 500,
-            "wood": 1000,
-            "food": 1500,
-            "stone": 500
+            "黄金": 500,
+            "木材": 1000,
+            "粮草": 1500,
+            "石料": 500
         }
         
         # 英雄队伍
@@ -43,37 +43,37 @@ class Game:
 
         # 建筑系统重构
         self.buildings = {
-            "farm": {
+            "农场": {
                 "level": 1,
-                "base_cost": {"wood": 20, "stone": 10, "food": 30},
-                "production": {"food": 10},
+                "base_cost": {"木材": 20, "石料": 10, "粮草": 30},
+                "production": {"粮草": 10},
                 "unlocked": True  # 初始已解锁
             },
-            "lumber_camp": {
+            "伐木场": {
                 "level": 0,
-                "base_cost": {"wood": 30, "stone": 15},
-                "production": {"wood": 8},
+                "base_cost": {"木材": 30, "石料": 15},
+                "production": {"木材": 8},
                 "unlocked": True
             },
-            "stone_quarry": {
+            "采石场": {
                 "level": 0,
-                "base_cost": {"wood": 40, "stone": 20},
-                "production": {"stone": 5},
+                "base_cost": {"木材": 40, "石料": 20},
+                "production": {"石料": 5},
                 "unlocked": True
             },
-            "gold_mine": {
+            "金矿": {
                 "level": 0,
-                "base_cost": {"wood": 50, "stone": 30, "gold": 20},
-                "production": {"gold": 7},
+                "base_cost": {"木材": 50, "石料": 30, "黄金": 20},
+                "production": {"黄金": 7},
                 "unlocked": False,
-                "unlock_condition": {"lumber_camp": 2}  # 需要伐木场2级
+                "unlock_condition": {"伐木场": 2}  # 需要伐木场2级
             },
-            "barracks": {
+            "兵营": {
                 "level": 0,
-                "base_cost": {"wood": 60, "stone": 40},
+                "base_cost": {"木材": 60, "石料": 40},
                 "unlocked": False,
-                "unlock_condition": {"stone_quarry": 1, "gold_mine": 1},
-                "heal_cost": {"food": 50},  # 新增：每次治疗消耗
+                "unlock_condition": {"采石场": 1, "金矿": 1},
+                "heal_cost": {"粮草": 50},  # 新增：每次治疗消耗
                 "heal_percent": 0.2  # 新增：每次恢复最大兵力的百分比
             }
         }
@@ -82,17 +82,17 @@ class Game:
     
     def heal_troops(self):
         """通过兵营恢复兵力"""
-        barracks = self.buildings["barracks"]
+        barracks = self.buildings["兵营"]
         
         # 检查兵营等级
         if barracks["level"] == 0:
             return False, "兵营尚未建造"
         
         # 计算总消耗
-        required_food = barracks["heal_cost"]["food"] * barracks["level"]
+        required_food = barracks["heal_cost"]["粮草"] * barracks["level"]
         
         # 检查资源是否充足
-        if self.resources["food"] < required_food:
+        if self.resources["粮草"] < required_food:
             return False, "粮食不足"
         
         # 检查是否有需要恢复的兵力
@@ -101,7 +101,7 @@ class Game:
             return False, "没有需要恢复的兵力"
         
         # 扣除资源
-        self.resources["food"] -= required_food
+        self.resources["粮草"] -= required_food
         
         # 恢复兵力
         heal_amount = barracks["heal_percent"] * barracks["level"]
@@ -335,11 +335,11 @@ class Game:
 
     def explore(self):
         explore_cost = 50
-        if self.resources["food"] < explore_cost:
+        if self.resources["粮草"] < explore_cost:
             print("食物不足，无法探索！")
             return None  # 明确返回None
             
-        self.resources["food"] -= explore_cost
+        self.resources["粮草"] -= explore_cost
         print(f"消耗了 {explore_cost} 食物进行探索。")
         
         success_chance = 0.8 

@@ -22,10 +22,10 @@ COLORS = {
 
 # 在初始化部分添加图标加载
 ICONS = {
-    "gold": pygame.transform.scale(pygame.image.load("ui/icons/gold.png").convert_alpha(), (48, 48)),
-    "wood": pygame.transform.scale(pygame.image.load("ui/icons/wood.png").convert_alpha(), (48, 48)),
-    "food": pygame.transform.scale(pygame.image.load("ui/icons/food.png").convert_alpha(), (48, 48)),
-    "stone": pygame.transform.scale(pygame.image.load("ui/icons/stone.png").convert_alpha(), (48, 48))
+    "黄金": pygame.transform.scale(pygame.image.load("ui/icons/gold.png").convert_alpha(), (48, 48)),
+    "木材": pygame.transform.scale(pygame.image.load("ui/icons/wood.png").convert_alpha(), (48, 48)),
+    "粮草": pygame.transform.scale(pygame.image.load("ui/icons/food.png").convert_alpha(), (48, 48)),
+    "石料": pygame.transform.scale(pygame.image.load("ui/icons/stone.png").convert_alpha(), (48, 48))
 }
 
 
@@ -159,77 +159,154 @@ class MainScene(Scene):
             btn.draw(surface)
 
 class BuildScene(Scene):
+    BUILDING_NAMES = {
+        "farm": "农场",
+        "lumber_camp": "伐木场", 
+        "stone_quarry": "采石场",
+        "gold_mine": "金矿",
+        "barracks": "兵营"
+    }
+    
+    RESOURCE_NAMES = {
+        "gold": "黄金",
+        "wood": "木材",
+        "food": "粮草",
+        "stone": "石料"
+    }
+
     def __init__(self):
         self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
-        self.heal_btn = Button((200, 600, 200, 40),  # 新增恢复按钮
-            lambda: f"治疗部队（需食物:{game.buildings['barracks']['heal_cost']['food']*game.buildings['barracks']['level']})",
+        self.heal_btn = Button((200, 600, 200, 40), 
+            lambda: f"治疗部队（需食物:{game.buildings['兵营']['heal_cost']['粮草']*game.buildings['兵营']['level']})",
             self.heal_troops)
-        self.build_buttons = []
+        self.selected_building = None
+        self.confirm_rect = None
+        self.confirm_buttons = []
+
+    def heal_troops(self):
+        """治疗部队方法（保持原有逻辑）"""
+        success, message = game.heal_troops()
+        if not success:
+            print(message)
         self.refresh_buttons()
 
     def refresh_buttons(self):
-        """刷新建筑按钮列表"""
-        self.build_buttons = []
-        y = 100
-        for name in game.buildings:
-            data = game.buildings[name]
-            if data["unlocked"]:
-                # 动态生成按钮文本（使用lambda捕获当前name值）
-                text_func = lambda n=name: f"{n} Lv{game.buildings[n]['level']} (升级需: {self.get_cost_string(n)})"
-                btn = Button(
-                    (100, y, 600, 60),
-                    text_func,
-                    lambda b=name: self.upgrade_building(b)
-                )
-                self.build_buttons.append(btn)
-                y += 70
-        
-        # 添加治疗按钮状态更新
+        """仅更新治疗按钮状态"""
         self.heal_btn.hover = self.heal_btn.rect.collidepoint(pygame.mouse.get_pos())
 
-    def heal_troops(self):
-        success, message = game.heal_troops()
-        if not success:
-            print(message)  # 在实际游戏中可以显示UI提示
-        self.refresh_buttons()
+    def draw_building(self, surface, name, data, pos):
+        """绘制单个建筑元素"""
+        zh_name = self.BUILDING_NAMES.get(name, name)
+        
+        # 建筑主体
+        pygame.draw.rect(surface, (100, 100, 150), (pos[0], pos[1], 120, 120), border_radius=10)
+        
+        # 等级徽章
+        pygame.draw.circle(surface, (200, 200, 100), (pos[0]+100, pos[1]+20), 16)
+        level_text = FONT_SM.render(str(data['level']), True, (50, 50, 50))
+        surface.blit(level_text, (pos[0]+100 - level_text.get_width()//2, pos[1]+20 - level_text.get_height()//2))
+        
+        # 建筑名称
+        name_text = FONT_SM.render(zh_name, True, COLORS["text"])
+        surface.blit(name_text, (pos[0]+(120-name_text.get_width())//2, pos[1]+130))
 
-    def get_cost_string(self, building_name):
-        """生成资源需求字符串"""
-        data = game.buildings[building_name]
-        current_cost = {k: v * (data["level"] + 1) for k, v in data["base_cost"].items()}
-        return " ".join([f"{k}:{v}" for k, v in current_cost.items()])
-    
-    def upgrade_building(self, building_name):
-        if game.upgrade_building(building_name):
-            self.refresh_buttons()  # 升级成功刷新按钮
-        else:
-            # 可以在这里添加资源不足的提示逻辑
-            pass
+    def draw_confirmation(self, surface):
+        """绘制升级确认弹窗"""
+        dialog_rect = pygame.Rect(300, 200, 600, 300)
+        pygame.draw.rect(surface, (80, 80, 100), dialog_rect, border_radius=10)
+        
+        # 标题
+        title = FONT_MD.render(f"升级 {self.selected_building} 到 Lv.{game.buildings[self.selected_building]['level']+1}", True, (255,255,200))
+        surface.blit(title, (dialog_rect.centerx - title.get_width()//2, 220))
+        
+        # 资源消耗
+        y = 280
+        cost = {k: v*(game.buildings[self.selected_building]['level']+1) 
+               for k,v in game.buildings[self.selected_building]['base_cost'].items()}
+        for res, amount in cost.items():
+            zh_res = self.RESOURCE_NAMES.get(res, res)
+            if res in ICONS:
+                icon = pygame.transform.scale(ICONS[res], (30,30))
+                surface.blit(icon, (350, y))
+                color = (255,255,255) if game.resources[res] >= amount else (255,50,50)
+                text = FONT_SM.render(f"{amount}", True, color)
+                surface.blit(text, (390, y+5))
+                y += 40
+        
+        # 确认按钮
+        confirm_btn = Button((400, 450, 120, 40), "确认升级", self.do_upgrade)
+        cancel_btn = Button((600, 450, 120, 40), "取消", self.cancel_upgrade)
+        confirm_btn.draw(surface)
+        cancel_btn.draw(surface)
+        self.confirm_buttons = [confirm_btn, cancel_btn]
+
+    def do_upgrade(self):
+        """执行升级"""
+        if game.upgrade_building(self.selected_building):
+            self.selected_building = None
+        self.confirm_rect = None
+
+    def cancel_upgrade(self):
+        """取消升级"""
+        self.selected_building = None
+        self.confirm_rect = None
 
     def handle_events(self, events):
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                # 添加治疗按钮检测
+                
+                if self.selected_building:
+                    for btn in self.confirm_buttons:
+                        if btn.rect.collidepoint(pos):
+                            btn.callback()
+                    continue
+                
+                # 检测建筑点击
+                col_count = 4
+                start_x, start_y = 100, 100
+                for i, (name, data) in enumerate(game.buildings.items()):
+                    if not data["unlocked"]:
+                        continue
+                    col = i % col_count
+                    row = i // col_count
+                    x = start_x + col * 180
+                    y = start_y + row * 180
+                    if pygame.Rect(x, y, 120, 150).collidepoint(pos):
+                        self.selected_building = name
+                        self.confirm_rect = pygame.Rect(300, 200, 600, 300)
+                        break
+                
+                # 处理治疗和返回按钮
                 if self.heal_btn.rect.collidepoint(pos):
                     self.heal_btn.callback()
                 if self.back_btn.rect.collidepoint(pos):
                     self.back_btn.callback()
-                for btn in self.build_buttons:
-                    if btn.rect.collidepoint(pos) and btn.callback:
-                        btn.callback()
 
-    def update(self):
-        # 在建筑场景中无需特殊更新逻辑
-        pass
-    
     def draw(self, surface):
         surface.fill(COLORS["background"])
         self.back_btn.draw(surface)
-        self.heal_btn.draw(surface)  # 绘制治疗按钮
-        for btn in self.build_buttons:
-            btn.hover = btn.rect.collidepoint(pygame.mouse.get_pos())
-            btn.draw(surface)
+        self.heal_btn.draw(surface)
+        
+        # 绘制建筑网格
+        col_count = 4
+        start_x, start_y = 100, 100
+        for i, (name, data) in enumerate(game.buildings.items()):
+            if not data["unlocked"]:
+                continue
+            col = i % col_count
+            row = i // col_count
+            x = start_x + col * 180
+            y = start_y + row * 180
+            self.draw_building(surface, name, data, (x, y))
+        
+        # 绘制确认弹窗
+        if self.selected_building:
+            # 半透明遮罩
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 128))
+            surface.blit(overlay, (0,0))
+            self.draw_confirmation(surface)
 
 class PartyScene(Scene):
     def __init__(self):
