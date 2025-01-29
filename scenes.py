@@ -179,24 +179,41 @@ class MainScene(Scene):
             # 更新下一个资源项位置
             current_x += icon_size + text_margin + value_surf.get_width() + item_spacing
 
-        # 调整英雄显示位置到屏幕中部
-        x = 80
-        for hero in game.party:
-            hero_height = hero.troops / 4
-            pygame.draw.rect(surface, (100,150,200), (x, 350-hero_height, 80, hero_height))  # Y坐标上移
-            
-            # 调整文本位置
-            text = FONT_SM.render(hero.name, True, COLORS["text"])
-            text_x = x + (80 - text.get_width()) // 2
-            surface.blit(text, (text_x, 360))  # 文本位置上移
-            
-            # 调整兵力显示位置
-            troops_text = FONT_SM.render(str(hero.troops), True, COLORS["text"])
-            troops_x = x + (80 - troops_text.get_width()) // 2
-            troops_y = 350 - hero_height + (hero_height - troops_text.get_height()) // 2
-            surface.blit(troops_text, (troops_x, troops_y))
+        # 调整英雄显示到右上角（资源栏下方）
+        panel_height = 40  # 资源栏高度
+        start_x = SCREEN_WIDTH - 200  # 从右侧200像素开始
+        start_y = panel_height + 10   # 资源栏下方10像素
+        icon_size = 40  # 头像尺寸
 
-            x += 85
+        # 横向排列
+        x = start_x
+        for hero in game.party:
+            # 头像背景
+            pygame.draw.rect(surface, (80, 80, 100), (x, start_y, icon_size, icon_size), border_radius=5)
+            
+            # 显示首字（临时替代头像）
+            initial = hero.name[0]  # 取名字首字
+            initial_surf = FONT_MD.render(initial, True, (255,255,255))
+            initial_rect = initial_surf.get_rect(center=(x + icon_size//2, start_y + icon_size//2))
+            surface.blit(initial_surf, initial_rect)
+            
+            # 简化兵力显示（小进度条）
+            troop_bar_height = 5
+            troop_width = int(icon_size * (hero.troops / hero.max_troops))
+            pygame.draw.rect(surface, (0, 200, 0), (x, start_y + icon_size, troop_width, troop_bar_height))
+            
+            # 显示兵力数字
+            troops_text = FONT_SM.render(str(hero.troops), True, COLORS["text"])
+            surface.blit(troops_text, (x + 2, start_y + icon_size + troop_bar_height))
+            
+            # 显示等级徽章
+            level_bg = pygame.Surface((20, 20), pygame.SRCALPHA)
+            pygame.draw.circle(level_bg, (200, 200, 100), (10, 10), 10)
+            surface.blit(level_bg, (x + icon_size - 20, start_y))
+            level_text = FONT_SM.render(str(hero.level), True, (50, 50, 50))
+            surface.blit(level_text, (x + icon_size - 15, start_y + 2))
+            
+            x -= (icon_size + 10)  # 向左排列，间距10像素
 
         # 最后绘制按钮确保在最上层
         for btn in self.buttons:
