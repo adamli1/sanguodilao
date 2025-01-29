@@ -252,7 +252,7 @@ class PartyScene(Scene):
         y += 60
         for i, hero in enumerate(game.party):
             btn = Button((100, y, 300, 50), 
-                        f"{hero.name} (兵力: {hero.troops})",
+                        lambda h=hero: f"{h.name} Lv{h.level} (兵力: {h.troops}/经验: {h.exp}/{h.required_exp()})",
                         lambda idx=i: self.select_party_member(idx))
             self.buttons.append(btn)
             y += 60
@@ -264,7 +264,7 @@ class PartyScene(Scene):
         for i, hero in enumerate(game.city_heroes):
             if hero not in game.party:
                 btn = Button((500, y, 300, 50),
-                            f"{hero.name} (兵力: {hero.troops})",
+                            f"{hero.name} Lv{hero.level} (兵力: {hero.troops}/经验: {hero.exp}/{hero.required_exp()})",
                             lambda idx=i: self.select_available_hero(idx))
                 self.buttons.append(btn)
                 y += 60
@@ -351,7 +351,6 @@ class BattleScene(Scene):
 
         # 新增：检查行动顺序列表是否为空
         if not self.battle_system.turn_order:
-            print("que2")
             return
 
         # 跳过已死亡单位
@@ -390,6 +389,7 @@ class BattleScene(Scene):
         # 检查战斗结果（移动到此处以确保实时更新）
         if all(not e.is_alive for e in self.battle_system.enemies):
             self.battle_result = "win"
+            self.battle_system.distribute_exp()
             self.battle_over = True
         elif all(not h.is_alive for h in self.battle_system.party):
             self.battle_result = "lose"

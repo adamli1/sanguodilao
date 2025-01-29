@@ -101,10 +101,25 @@ class BattleSystem:
         target = random.choice(targets)
         self.basic_attack(character, target)
 
-
+    def distribute_exp(self):
+        """战斗胜利后分配经验"""
+        if not self.party:
+            return
+        
+        # 计算总经验值（根据敌人等级和数量）
+        total_exp = sum(e.level * 50 for e in self.enemies)
+        exp_per_hero = total_exp // len(self.party)
+        
+        # 分配经验并升级
+        for hero in self.party:
+            if hero.is_alive:
+                hero.add_exp(exp_per_hero)
+            else:
+                hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
  
     def battle_loop(self):
         """主战斗循环"""
+        result = None
         round_count = 1
         while True:
             print(f"\n=== 第 {round_count} 回合 ===")
@@ -121,6 +136,7 @@ class BattleSystem:
                 # 检查战斗结果
                 if all(not e.is_alive for e in self.enemies):
                     print("🎉 战斗胜利！")
+                    self.distribute_exp()
                     return "win"
                 if all(not h.is_alive for h in self.party):
                     print("💀 队伍全灭...")
