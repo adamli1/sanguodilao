@@ -66,11 +66,17 @@ FONT_LG = pygame.font.Font("ui/SimHei.ttf", 48)
 
 class MainScene(Scene):
     def __init__(self):
+        # 调整按钮位置和尺寸到底部
+        button_width = 150
+        button_height = 40
+        start_y = SCREEN_HEIGHT - 70  # 底部留出空间
+        horizontal_spacing = 220  # 按钮水平间距
+        
         self.buttons = [
-            Button((100, 500, 200, 50), "建筑系统", lambda: game_state.change_scene(BuildScene())),
-            Button((350, 500, 200, 50), "英雄探索", self.explore),
-            Button((600, 500, 200, 50), "编队管理", lambda: game_state.change_scene(PartyScene())),
-            Button((850, 500, 200, 50), "开始战斗", self.start_battle)
+            Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
+            Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", self.explore),
+            Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
+            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle)
         ]
         
     def explore(self):
@@ -98,69 +104,62 @@ class MainScene(Scene):
     def draw(self, surface):
         surface.fill(COLORS["background"])
         
-        # 绘制资源面板（顶部横排）
-        panel_height = 80
+        # 绘制资源面板（顶部横排） - 修改这部分
+        panel_height = 40  # 进一步降低面板高度
         pygame.draw.rect(surface, COLORS["panel"], (0, 0, SCREEN_WIDTH, panel_height))
         
-        # 资源项参数
-        icon_size = 48
-        margin = 20
-        start_x = 30
-        spacing = 150
+        # 新参数设置
+        icon_size = 20       # 图标尺寸
+        text_margin = 5      # 图标与数值间距
+        item_spacing = 35    # 资源项间距加大
+        start_margin = 15    # 左侧起始边距
+        current_x = start_margin  # 当前绘制位置
         
-        # 遍历资源
-        for idx, (res_name, value) in enumerate(game.resources.items()):
-            x = start_x + idx * spacing
-            
+        # 使用更小字体
+        value_font = pygame.font.Font(None, 20)  # 新建小号字体
+        # 或者使用预设的 FONT_SM（如果已定义合适大小）
+
+        for res_name, value in game.resources.items():
             # 绘制图标
             if res_name in ICONS:
                 icon = pygame.transform.scale(ICONS[res_name], (icon_size, icon_size))
-                surface.blit(icon, (x, 15))
+                icon_y = (panel_height - icon_size) // 2
+                surface.blit(icon, (current_x, icon_y))
             
-            # 绘制数值
-            text_surf = FONT_MD.render(f"{value}", True, COLORS["text"])
-            text_rect = text_surf.get_rect(midtop=(x + icon_size/2, 15 + icon_size + 5))
-            surface.blit(text_surf, text_rect)
+            # 绘制数值（支持8位数）
+            value_text = f"{value:8d}"  # 格式化为8位宽度
+            value_surf = value_font.render(value_text, True, COLORS["text"])
+            value_y = (panel_height - value_surf.get_height()) // 2
             
-        # 绘制按钮
-        for btn in self.buttons:
-            btn.draw(surface)
+            # 数值位置（图标右侧）
+            value_x = current_x + icon_size + text_margin
+            surface.blit(value_surf, (value_x, value_y))
             
-        # 绘制英雄队伍
+            # 更新下一个资源项位置
+            current_x += icon_size + text_margin + value_surf.get_width() + item_spacing
+
+        # 调整英雄显示位置到屏幕中部
         x = 80
         for hero in game.party:
             hero_height = hero.troops / 4
-            pygame.draw.rect(surface, (100,150,200), (x, 450-hero_height, 80, hero_height))
+            pygame.draw.rect(surface, (100,150,200), (x, 350-hero_height, 80, hero_height))  # Y坐标上移
             
-            # 渲染英雄名字
+            # 调整文本位置
             text = FONT_SM.render(hero.name, True, COLORS["text"])
+            text_x = x + (80 - text.get_width()) // 2
+            surface.blit(text, (text_x, 360))  # 文本位置上移
             
-            # 获取文本的矩形区域
-            text_rect = text.get_rect()
-            
-            # 计算文本的水平位置，使其在英雄矩形内居中
-            text_x = x + (80 - text_rect.width) // 2  # 80 是英雄矩形的宽度
-            text_y = 460  # 垂直位置保持不变
-            
-            # 绘制文本
-            surface.blit(text, (text_x, text_y))
-            
-            # 渲染英雄的 troops 数值
+            # 调整兵力显示位置
             troops_text = FONT_SM.render(str(hero.troops), True, COLORS["text"])
-            
-            # 获取 troops 文本的矩形区域
-            troops_rect = troops_text.get_rect()
-            
-            # 计算 troops 文本的水平位置，使其在英雄矩形内居中
-            troops_x = x + (80 - troops_rect.width) // 2  # 80 是英雄矩形的宽度
-            
-            # 计算 troops 文本的垂直位置，使其在英雄矩形内居中
-            troops_y = 450 - hero_height + (hero_height - troops_rect.height) // 2  # 垂直居中在矩形内
-            
-            # 绘制 troops 数值
+            troops_x = x + (80 - troops_text.get_width()) // 2
+            troops_y = 350 - hero_height + (hero_height - troops_text.get_height()) // 2
             surface.blit(troops_text, (troops_x, troops_y))
 
             x += 85
+
+        # 最后绘制按钮确保在最上层
+        for btn in self.buttons:
+            btn.draw(surface)
 
 class BuildScene(Scene):
     def __init__(self):
