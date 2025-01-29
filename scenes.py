@@ -70,14 +70,15 @@ class MainScene(Scene):
         button_width = 150
         button_height = 40
         start_y = SCREEN_HEIGHT - 70  # 底部留出空间
-        horizontal_spacing = 180  # 调整水平间距以适应更多按钮
+        horizontal_spacing = 150  # 缩小间距以适应更多按钮
         
         self.buttons = [
             Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
             Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: game_state.change_scene(ExploreScene())),
             Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
             Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle),
-            Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene()))  # 新增按钮
+            Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene())),
+            Button((200 + horizontal_spacing*5, start_y, button_width, button_height), "背包", lambda: game_state.change_scene(InventoryScene()))
         ]
         
         self.player_pos = [SCREEN_WIDTH//2, SCREEN_HEIGHT//2]  # 新增：玩家初始位置
@@ -790,6 +791,77 @@ class HeroScene(Scene):
                 skill_text = FONT_SM.render(f"{skill['name']} - {skill['scale']}", True, COLORS["text"])
                 surface.blit(skill_text, (540, y))
                 y += 30
+
+class InventoryScene(Scene):
+    def __init__(self):
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.tabs = [
+            {"name": "材料卡", "rect": pygame.Rect(150, 100, 150, 40)},
+            {"name": "消耗品", "rect": pygame.Rect(350, 100, 150, 40)},
+            {"name": "其他", "rect": pygame.Rect(550, 100, 150, 40)}
+        ]
+        self.current_tab = 0  # 当前选中标签页
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                # 检测标签切换
+                for i, tab in enumerate(self.tabs):
+                    if tab["rect"].collidepoint(pos):
+                        self.current_tab = i
+                # 检测返回按钮
+                if self.back_btn.rect.collidepoint(pos):
+                    self.back_btn.callback()
+
+    def draw(self, surface):
+        surface.fill(COLORS["background"])
+        self.back_btn.draw(surface)
+        
+        # 绘制标题
+        title = FONT_MD.render("背 包", True, COLORS["text"])
+        surface.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 50))
+        
+        # 绘制标签页
+        for i, tab in enumerate(self.tabs):
+            color = (100, 100, 150) if i == self.current_tab else (60, 60, 90)
+            pygame.draw.rect(surface, color, tab["rect"], border_radius=5)
+            text = FONT_SM.render(tab["name"], True, (255,255,200))
+            surface.blit(text, (tab["rect"].centerx - text.get_width()//2, tab["rect"].centery - text.get_height()//2))
+        
+        # 根据当前标签绘制内容
+        if self.current_tab == 0:  # 材料卡
+            self._draw_materials(surface)
+        else:  # 其他标签预留位置
+            tip_text = FONT_MD.render("空空如也", True, (150,150,150))
+            surface.blit(tip_text, (SCREEN_WIDTH//2-60, 300))
+
+    def _draw_materials(self, surface):
+        """绘制材料卡内容（原逻辑）"""
+        start_x, start_y = 100, 150
+        col_spacing = 250
+        row_spacing = 150
+        materials = list(game.materials.items())
+        
+        for i, (hero_name, quantity) in enumerate(materials):
+            col = i % 3
+            row = i // 3
+            x = start_x + col * col_spacing
+            y = start_y + row * row_spacing
+            
+            # 材料卡背景
+            pygame.draw.rect(surface, (80, 80, 100), (x, y, 200, 120), border_radius=8)
+            
+            # 英雄名称
+            name_text = FONT_SM.render(hero_name, True, (255, 255, 200))
+            surface.blit(name_text, (x + 10, y + 10))
+            
+            # 材料数量
+            count_text = FONT_MD.render(f"×{quantity}", True, (200, 200, 0))
+            surface.blit(count_text, (x + 150 - count_text.get_width(), y + 90))
+            
+            # 占位图标
+            pygame.draw.circle(surface, (150, 150, 200), (x + 40, y + 60), 30)
 
 # 创建场景管理器
 class GameState:

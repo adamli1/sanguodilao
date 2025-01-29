@@ -39,7 +39,7 @@ class Game:
         # 英雄系统重构
         self.city_heroes = []  # 城池中的所有英雄
         self.party = []        # 出战队伍（最多3人）
-        self.materials = {}    # 材料卡（同名卡转换）
+        self.materials = {}    # 改为字典存储，格式：{"英雄名": 数量}
 
         # 建筑系统重构
         self.buildings = {
@@ -282,6 +282,13 @@ class Game:
         print(f"\n=== 英雄队伍 ===")
         print("无" if not self.party else "\n".join([f"{h.name} (Troops:{h.troops})" for h in self.party]))
 
+        print("\n=== 英雄材料卡 ===")
+        if self.materials:
+            for hero, count in self.materials.items():
+                print(f"{hero}材料卡：{count}张")
+        else:
+            print("暂无英雄材料卡")
+
     def show_hero_details(self):
         """显示所有英雄详情"""
         print("\n=== 出战英雄详情 ===")
@@ -372,9 +379,10 @@ class Game:
             # 检查是否重复
             existing_names = [h.name for h in self.city_heroes + self.party]
             if new_hero.name in existing_names:
+                # 转换为对应英雄的材料卡
                 self.materials[new_hero.name] = self.materials.get(new_hero.name, 0) + 1
-                print(f"获得重复名将【{new_hero.name}】，自动转化为材料卡x1！")
-                print(f"当前材料：{self.materials[new_hero.name]}张")
+                print(f"获得重复名将【{new_hero.name}】，自动转化为专属材料卡x1！")
+                print(f"当前{new_hero.name}材料卡数量：{self.materials[new_hero.name]}")
             else:
                 self.city_heroes.append(new_hero)
                 print(f"\n🌟【{selected_rarity}】获得名将：{new_hero.name}")
