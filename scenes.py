@@ -434,9 +434,27 @@ class BattleScene(Scene):
         # 绘制己方队伍
         x = 100
         for hero in game.party:
+            pos = self.get_combatant_pos(hero)
             color = (0, 200, 0) if hero.is_alive else (100, 100, 100)
             pygame.draw.circle(surface, color, (x, 600), 30)
             
+             # 绘制血条背景
+            bar_width = 60
+            bar_height = 8
+            bg_rect = pygame.Rect(pos[0]-bar_width//2, pos[1]+40, bar_width, bar_height)
+            pygame.draw.rect(surface, (50, 50, 50), bg_rect)
+            
+            # 绘制当前血量
+            if hero.max_troops > 0:
+                hp_width = int(bar_width * hero.troops / hero.max_troops)
+                hp_rect = pygame.Rect(pos[0]-bar_width//2, pos[1]+40, hp_width, bar_height)
+                pygame.draw.rect(surface, (0, 200, 0), hp_rect)
+            
+            # 显示兵力数值
+            text = FONT_SM.render(f"{hero.troops}/{hero.max_troops}", True, (200,200,200))
+            text_rect = text.get_rect(center=(pos[0], pos[1]+60))
+            surface.blit(text, text_rect)
+
             # 绘制首字
             if hero.is_alive:
                 text = FONT_SM.render(hero.name[0], True, (255, 255, 255))
@@ -447,9 +465,27 @@ class BattleScene(Scene):
         # 绘制敌方队伍
         x = 100
         for enemy in game.current_enemies:
+            pos = self.get_combatant_pos(enemy)
             color = (200, 0, 0) if enemy.is_alive else (100, 100, 100)
             pygame.draw.circle(surface, color, (x, 100), 30)
             
+            # 绘制血条背景
+            bar_width = 60
+            bar_height = 8
+            bg_rect = pygame.Rect(pos[0]-bar_width//2, pos[1]+40, bar_width, bar_height)
+            pygame.draw.rect(surface, (50, 50, 50), bg_rect)
+            
+            # 绘制当前血量
+            if enemy.max_troops > 0:
+                hp_width = int(bar_width * enemy.troops / enemy.max_troops)
+                hp_rect = pygame.Rect(pos[0]-bar_width//2, pos[1]+40, hp_width, bar_height)
+                pygame.draw.rect(surface, (200, 0, 0), hp_rect)
+            
+            # 显示兵力数值
+            text = FONT_SM.render(f"{enemy.troops}/{enemy.max_troops}", True, (200,200,200))
+            text_rect = text.get_rect(center=(pos[0], pos[1]+60))
+            surface.blit(text, text_rect)
+
             if enemy.is_alive:
                 text = FONT_SM.render(enemy.name[0], True, (255, 255, 255))
                 text_rect = text.get_rect(center=(x, 100))
