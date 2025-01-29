@@ -80,6 +80,9 @@ class MainScene(Scene):
             Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene()))  # 新增按钮
         ]
         
+        self.player_pos = [SCREEN_WIDTH//2, SCREEN_HEIGHT//2]  # 新增：玩家初始位置
+        self.move_speed = 5  # 移动速度
+
     def start_battle(self):
         if not game.party:
             return
@@ -87,6 +90,23 @@ class MainScene(Scene):
         game_state.change_scene(BattleScene(game_state))  # 传递game_state参数
 
     def handle_events(self, events):
+        # 先处理键盘输入
+        keys = pygame.key.get_pressed()
+        # 移动处理（新增WSAD控制）
+        if keys[K_w]:
+            self.player_pos[1] -= self.move_speed
+        if keys[K_s]:
+            self.player_pos[1] += self.move_speed
+        if keys[K_a]:
+            self.player_pos[0] -= self.move_speed
+        if keys[K_d]:
+            self.player_pos[0] += self.move_speed
+        
+        # 边界限制
+        self.player_pos[0] = max(50, min(SCREEN_WIDTH-50, self.player_pos[0]))
+        self.player_pos[1] = max(50, min(SCREEN_HEIGHT-150, self.player_pos[1]))  # 底部留出按钮空间
+        
+        # 原有鼠标事件处理
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
@@ -100,6 +120,11 @@ class MainScene(Scene):
 
     def draw(self, surface):
         surface.fill(COLORS["background"])
+        
+        # 绘制玩家角色（新增）
+        pygame.draw.circle(surface, (0, 200, 255), self.player_pos, 20)  # 蓝色圆形表示玩家
+        # 绘制角色朝向指示器
+        pygame.draw.circle(surface, (255, 255, 0), self.player_pos, 5)  # 黄色前向指示
         
         # 绘制资源面板（顶部横排） - 修改这部分
         panel_height = 40  # 进一步降低面板高度
