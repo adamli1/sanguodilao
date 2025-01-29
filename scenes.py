@@ -66,6 +66,10 @@ FONT_LG = pygame.font.Font("ui/SimHei.ttf", 48)
 
 class MainScene(Scene):
     def __init__(self):
+        # 加载背景地图
+        self.background = pygame.image.load("ui/icons/mainmap.png").convert_alpha()
+        self.background = pygame.transform.scale(self.background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        
         # 调整按钮位置和尺寸到底部
         button_width = 150
         button_height = 40
@@ -128,7 +132,12 @@ class MainScene(Scene):
         pass
 
     def draw(self, surface):
-        surface.fill(COLORS["background"])
+        # 绘制背景地图
+        surface.blit(self.background, (0, 0))
+        
+        # 绘制角色（保持原有逻辑）
+        pygame.draw.circle(surface, (0, 200, 255), self.player_pos, 20)  # 蓝色圆形表示玩家
+        pygame.draw.circle(surface, (255, 255, 0), self.player_pos, 5)  # 黄色前向指示
         
         # 绘制城池区域
         pygame.draw.rect(surface, (150, 100, 50), self.city_rect)  # 棕色矩形表示城池
@@ -140,10 +149,6 @@ class MainScene(Scene):
         if self.in_city:
             tip_text = FONT_SM.render("进入主城", True, (200, 200, 0))
             surface.blit(tip_text, (self.city_rect.centerx - 100, self.city_rect.bottom + 10))
-        
-        # 绘制玩家角色
-        pygame.draw.circle(surface, (0, 200, 255), self.player_pos, 20)  # 蓝色圆形表示玩家
-        pygame.draw.circle(surface, (255, 255, 0), self.player_pos, 5)  # 黄色前向指示
         
         # 绘制资源面板（顶部横排） - 修改这部分
         panel_height = 40  # 进一步降低面板高度
