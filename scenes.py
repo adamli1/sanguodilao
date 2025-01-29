@@ -76,7 +76,7 @@ class MainScene(Scene):
             Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
             Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: game_state.change_scene(ExploreScene())),
             Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
-            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle),
+            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", lambda: game_state.change_scene(MapSelectScene())),
             Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene())),
             Button((200 + horizontal_spacing*5, start_y, button_width, button_height), "背包", lambda: game_state.change_scene(InventoryScene()))
         ]
@@ -731,6 +731,7 @@ class BattleScene(Scene):
             text_rect = text.get_rect(center=(pos[0], pos[1]+60))
             surface.blit(text, text_rect)
 
+            # 绘制首字
             if enemy.is_alive:
                 text = FONT_SM.render(enemy.name[0], True, (255, 255, 255))
                 text_rect = text.get_rect(center=(x, 100))
@@ -974,6 +975,82 @@ class InventoryScene(Scene):
             
             # 占位图标
             pygame.draw.circle(surface, (150, 150, 200), (x + 40, y + 60), 30)
+
+class MapSelectScene(Scene):
+    def __init__(self):
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.maps = [
+            {
+                "name": "黄巾起义",
+                "level_range": (1, 5),
+                "desc": "剿灭黄巾乱党，匡扶汉室",
+                "color": (150, 100, 50)
+            },
+            {
+                "name": "讨伐董卓",
+                "level_range": (5, 10),
+                "desc": "十八路诸侯共诛国贼",
+                "color": (100, 50, 150)
+            },
+            {
+                "name": "群雄割据",
+                "level_range": (10, 20),
+                "desc": "诸侯并起，逐鹿中原",
+                "color": (50, 150, 100)
+            }
+        ]
+        self.buttons = []
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if self.back_btn.rect.collidepoint(pos):
+                    self.back_btn.callback()
+                for btn in self.buttons:
+                    if btn.rect.collidepoint(pos):
+                        btn.callback()
+
+    def draw(self, surface):
+        surface.fill(COLORS["background"])
+        self.back_btn.draw(surface)
+
+        # 绘制地图选项
+        map_width = 300
+        map_height = 180
+        start_x = 100
+        start_y = 100
+        spacing = 50
+
+        self.buttons = []
+        for i, map_info in enumerate(self.maps):
+            x = start_x + (map_width + spacing) * (i % 2)
+            y = start_y + (map_height + spacing) * (i // 2)
+            rect = pygame.Rect(x, y, map_width, map_height)
+            
+            # 绘制地图面板
+            pygame.draw.rect(surface, map_info["color"], rect, border_radius=10)
+            
+            # 地图名称
+            name_text = FONT_MD.render(map_info["name"], True, (255,255,200))
+            surface.blit(name_text, (x + 20, y + 20))
+            
+            # 等级范围
+            level_text = FONT_SM.render(f"敌人等级: {map_info['level_range'][0]}-{map_info['level_range'][1]}", True, (200,200,200))
+            surface.blit(level_text, (x + 20, y + 60))
+            
+            # 描述
+            desc_text = FONT_SM.render(map_info["desc"], True, (200,200,200))
+            surface.blit(desc_text, (x + 20, y + 100))
+            
+            # 创建透明按钮
+            btn = Button(rect, "", lambda m=map_info: self.start_battle(m))
+            self.buttons.append(btn)
+
+    def start_battle(self, map_info):
+        game.selected_map = map_info  # 存储当前选择的地图
+        game.generate_enemies(map_info["level_range"])
+        game_state.change_scene(BattleScene(game_state))
 
 # 创建场景管理器
 class GameState:

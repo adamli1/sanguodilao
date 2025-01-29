@@ -1,5 +1,6 @@
 import random
 import threading
+import copy
 from config import (
     SKILL_LIBRARY,
     HERO_POOL,
@@ -146,42 +147,30 @@ class Game:
                 print("技能：" + ", ".join([s["name"] for s in hero.skills]))
                 print("----------------")
 
-    def generate_enemies(self):
-        """根据队伍等级生成敌人"""
-        avg_level = sum(h.level for h in self.party)/len(self.party) if self.party else 1
-        enemy_level = max(1, int(avg_level))
-        
-        # 随机生成敌人组合（示例组合）
-        enemy_types = random.choice([
-            ["小兵", "小兵"],
-            ["小兵", "贼将"],
-            ["贪官", "贼将"],
-            ["贪官", "贪官", "小兵"]
-        ])
-        
+    def generate_enemies(self, level_range=(1,10)):
         self.current_enemies = []
-        for etype in enemy_types:
-            template = ENEMY_TEMPLATES[etype]
-            level = enemy_level
+        template_names = list(ENEMY_TEMPLATES.keys())
+        
+        for _ in range(random.randint(2,4)):
+            template = random.choice(template_names)
+            base_level = random.randint(level_range[0], level_range[1])
             
-            # 计算成长后属性
-            troops = template["base"]["troops"] + template["growth"]["troops"] * (level-1)
-            strength = template["base"]["strength"] + template["growth"]["strength"] * (level-1)
-            intelligence = template["base"]["intelligence"] + template["growth"]["intelligence"] * (level-1)
-            agility = template["base"]["agility"] + template["growth"]["agility"] * (level-1)
-            
+            enemy_data = copy.deepcopy(ENEMY_TEMPLATES[template])
+            # 根据等级成长属性
+            level = base_level
+            growth = enemy_data["growth"]
             enemy = Enemy(
-                name=f"{etype}·Lv{level}",
-                troops=troops,
-                strength=strength,
-                intelligence=intelligence,
-                agility=agility
+                name=f"{template} Lv{level}",
+                troops=enemy_data["base"]["troops"] + growth["troops"] * level,
+                strength=enemy_data["base"]["strength"] + growth["strength"] * level,
+                intelligence=enemy_data["base"]["intelligence"] + growth["intelligence"] * level,
+                agility=enemy_data["base"]["agility"] + growth["agility"] * level
             )
             
-            # 添加技能
-            for skill_key in template["skills"]:
+             # 添加技能
+            for skill_key in enemy_data["skills"]:
                 enemy.skills.append(SKILL_LIBRARY[skill_key])
-            
+            enemy.level = level
             self.current_enemies.append(enemy)
     
     def manage_party(self):
