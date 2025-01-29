@@ -558,30 +558,37 @@ class ExploreScene(Scene):
         self.explore_btn.draw(surface)
 
         if self.result:
-            #print("正在绘制探索结果")  # 添加绘制调试
-            # 添加半透明背景提升文字可读性
-            panel_rect = pygame.Rect(100, 150, SCREEN_WIDTH-200, 300)
-            pygame.draw.rect(surface, (255,255,255, 128), panel_rect, border_radius=10)
+            # 检查英雄是否已存在
+            is_existing = self.result in game.city_heroes or self.result in game.party
             
-            text_y = 200
-            title = FONT_MD.render("★ 发现新英雄！ ★", True, (200, 50, 50))  # 使用醒目的红色
-            surface.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, text_y))
-            
-            # 添加英雄头像占位框
-            pygame.draw.rect(surface, (200,200,200), (SCREEN_WIDTH//2 - 50, text_y + 50, 100, 100))
-            
-            text_y += 180  # 调整信息位置到头像下方
-            info_lines = [
-                f"姓名: {self.result.name}",
-                f"等级: {self.result.level}",
-                f"兵力: {self.result.troops}",
-                f"技能: {self.result.skills}"
-            ]
-            
-            for line in info_lines:
-                text = FONT_SM.render(line, True, COLORS["text"])
-                surface.blit(text, (SCREEN_WIDTH//2 - text.get_width()//2, text_y))
-                text_y += 40
+            if not is_existing:
+                # 已有英雄的简单提示
+                text = FONT_MD.render(f"发现 {self.result.name}", True, COLORS["text"])
+                text_rect = text.get_rect(center=(SCREEN_WIDTH//2, 300))
+                surface.blit(text, text_rect)
+            else:
+                # 新英雄的完整展示
+                panel_rect = pygame.Rect(100, 150, SCREEN_WIDTH-200, 300)
+                pygame.draw.rect(surface, (255,255,255, 128), panel_rect, border_radius=10)
+                
+                text_y = 200
+                title = FONT_MD.render("★ 发现新英雄！ ★", True, (200, 50, 50))
+                surface.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, text_y))
+                
+                pygame.draw.rect(surface, (200,200,200), (SCREEN_WIDTH//2 - 50, text_y + 50, 100, 100))
+                
+                text_y += 180
+                info_lines = [
+                    f"姓名: {self.result.name}",
+                    f"等级: {self.result.level}",
+                    f"兵力: {self.result.troops}",
+                    f"技能: {self.result.skills[0]['name']}"
+                ]
+                
+                for line in info_lines:
+                    text = FONT_SM.render(line, True, COLORS["text"])
+                    surface.blit(text, (SCREEN_WIDTH//2 - text.get_width()//2, text_y))
+                    text_y += 40
         else:
             # 未探索时的提示添加背景框
             prompt_rect = pygame.Rect(SCREEN_WIDTH//2 - 200, 180, 400, 80)
