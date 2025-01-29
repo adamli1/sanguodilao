@@ -337,8 +337,8 @@ class Game:
         explore_cost = 50
         if self.resources["food"] < explore_cost:
             print("食物不足，无法探索！")
-            return
-        
+            return None  # 明确返回None
+            
         self.resources["food"] -= explore_cost
         print(f"消耗了 {explore_cost} 食物进行探索。")
         
@@ -382,5 +382,7 @@ class Game:
                 print(f"携技：{new_hero.skills[0]['name']}")
             
             self.explored_areas += 1
+            return new_hero  # 成功时返回英雄实例
         else:
             print("探索未发现任何有价值的东西")
+            return None  # 失败时返回None

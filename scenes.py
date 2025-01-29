@@ -74,14 +74,10 @@ class MainScene(Scene):
         
         self.buttons = [
             Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
-            Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", self.explore),
+            Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: game_state.change_scene(ExploreScene())),
             Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
             Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle)
         ]
-        
-    def explore(self):
-        # 调用原有游戏逻辑
-        game.explore()
         
     def start_battle(self):
         if not game.party:
@@ -533,6 +529,65 @@ class BattleScene(Scene):
         if self.waiting_for_animation:
             text = FONT_SM.render("行动中...", True, (200, 200, 200))
             surface.blit(text, (SCREEN_WIDTH//2-50, SCREEN_HEIGHT//2))  
+
+# 添加新的探索场景
+class ExploreScene(Scene):
+    def __init__(self):
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.explore_btn = Button((SCREEN_WIDTH//2 - 75, 500, 150, 50), "开始探索", self.do_explore)
+        self.result = None
+
+    def do_explore(self):
+        self.result = game.explore()
+        print(f"探索结果: {self.result}")  # 添加调试输出
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if self.back_btn.rect.collidepoint(pos):
+                    self.back_btn.callback()
+                elif self.explore_btn.rect.collidepoint(pos):
+                    self.result = None  # 强制清空旧结果
+                    self.explore_btn.callback()
+                    
+
+    def draw(self, surface):
+        surface.fill(COLORS["background"])
+        self.back_btn.draw(surface)
+        self.explore_btn.draw(surface)
+
+        if self.result:
+            #print("正在绘制探索结果")  # 添加绘制调试
+            # 添加半透明背景提升文字可读性
+            panel_rect = pygame.Rect(100, 150, SCREEN_WIDTH-200, 300)
+            pygame.draw.rect(surface, (255,255,255, 128), panel_rect, border_radius=10)
+            
+            text_y = 200
+            title = FONT_MD.render("★ 发现新英雄！ ★", True, (200, 50, 50))  # 使用醒目的红色
+            surface.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, text_y))
+            
+            # 添加英雄头像占位框
+            pygame.draw.rect(surface, (200,200,200), (SCREEN_WIDTH//2 - 50, text_y + 50, 100, 100))
+            
+            text_y += 180  # 调整信息位置到头像下方
+            info_lines = [
+                f"姓名: {self.result.name}",
+                f"等级: {self.result.level}",
+                f"兵力: {self.result.troops}",
+                f"技能: {self.result.skills}"
+            ]
+            
+            for line in info_lines:
+                text = FONT_SM.render(line, True, COLORS["text"])
+                surface.blit(text, (SCREEN_WIDTH//2 - text.get_width()//2, text_y))
+                text_y += 40
+        else:
+            # 未探索时的提示添加背景框
+            prompt_rect = pygame.Rect(SCREEN_WIDTH//2 - 200, 180, 400, 80)
+            pygame.draw.rect(surface, (200,200,200, 150), prompt_rect, border_radius=8)
+            prompt = FONT_MD.render("点击按钮开始探索", True, (50, 50, 50))  # 深色文字
+            surface.blit(prompt, (SCREEN_WIDTH//2 - prompt.get_width()//2, 210))
 
 # 创建场景管理器
 class GameState:
