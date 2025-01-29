@@ -70,13 +70,14 @@ class MainScene(Scene):
         button_width = 150
         button_height = 40
         start_y = SCREEN_HEIGHT - 70  # 底部留出空间
-        horizontal_spacing = 220  # 按钮水平间距
+        horizontal_spacing = 180  # 调整水平间距以适应更多按钮
         
         self.buttons = [
             Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
             Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: game_state.change_scene(ExploreScene())),
             Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
-            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle)
+            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", self.start_battle),
+            Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene()))  # 新增按钮
         ]
         
     def start_battle(self):
@@ -595,6 +596,80 @@ class ExploreScene(Scene):
             pygame.draw.rect(surface, (200,200,200, 150), prompt_rect, border_radius=8)
             prompt = FONT_MD.render("点击按钮开始探索", True, (50, 50, 50))  # 深色文字
             surface.blit(prompt, (SCREEN_WIDTH//2 - prompt.get_width()//2, 210))
+
+# 在Scene类之后添加新的英雄场景
+class HeroScene(Scene):
+    def __init__(self):
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.selected_hero = None
+        self.hero_buttons = []
+        self.refresh_hero_list()
+
+    def refresh_hero_list(self):
+        """刷新英雄列表"""
+        self.hero_buttons = []
+        y = 100
+        for hero in game.party + game.city_heroes:
+            btn = Button((100, y, 400, 50),
+                        lambda h=hero: f"{h.name} Lv{h.level} 兵力:{h.troops} 技能:{h.skills[0]['name']}",
+                        lambda h=hero: self.select_hero(h))
+            self.hero_buttons.append(btn)
+            y += 60
+
+    def select_hero(self, hero):
+        """选择查看英雄详情"""
+        self.selected_hero = hero
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if self.back_btn.rect.collidepoint(pos):
+                    self.back_btn.callback()
+                for btn in self.hero_buttons:
+                    if btn.rect.collidepoint(pos) and btn.callback:
+                        btn.callback()
+
+    def draw(self, surface):
+        surface.fill(COLORS["background"])
+        self.back_btn.draw(surface)
+        for btn in self.hero_buttons:
+            btn.draw(surface)
+        
+        # 绘制选中英雄的详细信息
+        if self.selected_hero:
+            hero = self.selected_hero
+            panel_rect = pygame.Rect(500, 100, 600, 500)
+            pygame.draw.rect(surface, COLORS["panel"], panel_rect, border_radius=10)
+            
+            y = 120
+            # 英雄名称
+            name_text = FONT_MD.render(f"{hero.name} Lv{hero.level}", True, (255, 215, 0))
+            surface.blit(name_text, (520, y))
+            y += 50
+            
+            # 基础属性
+            attrs = [
+                f"兵力: {hero.troops}/{hero.max_troops}",
+                f"力量: {hero.strength}",
+                f"智力: {hero.intelligence}",
+                f"敏捷: {hero.agility}",
+                f"经验: {hero.exp}/{hero.required_exp()}"
+            ]
+            for attr in attrs:
+                text = FONT_SM.render(attr, True, COLORS["text"])
+                surface.blit(text, (520, y))
+                y += 40
+            
+            # 技能信息
+            y += 20
+            skill_title = FONT_SM.render("技能列表:", True, COLORS["text"])
+            surface.blit(skill_title, (520, y))
+            y += 40
+            for skill in hero.skills:
+                skill_text = FONT_SM.render(f"{skill['name']} - {skill['scale']}", True, COLORS["text"])
+                surface.blit(skill_text, (540, y))
+                y += 30
 
 # 创建场景管理器
 class GameState:
