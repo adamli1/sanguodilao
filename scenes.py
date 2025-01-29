@@ -204,11 +204,11 @@ class MainScene(Scene):
 
 class BuildScene(Scene):
     BUILDING_NAMES = {
-        "farm": "农场",
-        "lumber_camp": "伐木场", 
-        "stone_quarry": "采石场",
-        "gold_mine": "金矿",
-        "barracks": "兵营"
+        "农场": "农场",
+        "伐木场": "伐木场", 
+        "采石场": "采石场",
+        "金矿": "金矿",
+        "兵营": "兵营"
     }
     
     RESOURCE_NAMES = {
@@ -267,34 +267,81 @@ class BuildScene(Scene):
             surface.blit(name_text, (pos[0]+(120-name_text.get_width())//2, pos[1]+130))
 
     def draw_confirmation(self, surface):
-        """绘制升级确认弹窗（保持原有逻辑）"""
-        dialog_rect = pygame.Rect(300, 200, 600, 300)
+        """绘制升级确认弹窗（新增产出变化显示）"""
+        dialog_rect = pygame.Rect(300, 200, 600, 350)
         pygame.draw.rect(surface, (80, 80, 100), dialog_rect, border_radius=10)
         
+        building = game.buildings[self.selected_building]
+        current_level = building["level"]
+        next_level = current_level + 1
+        
+        # 初始化y坐标
+        y = 280  # 所有建筑通用的起始Y坐标
+        
         # 标题
-        title = FONT_MD.render(f"升级 {self.selected_building} 到 Lv.{game.buildings[self.selected_building]['level']+1}", True, (255,255,200))
+        title = FONT_MD.render(
+            f"升级 {self.BUILDING_NAMES.get(self.selected_building, self.selected_building)} 到 Lv.{next_level}", 
+            True, 
+            (255,255,200)
+        )
         surface.blit(title, (dialog_rect.centerx - title.get_width()//2, 220))
         
-        # 资源消耗
-        y = 280
-        cost = {k: v*(game.buildings[self.selected_building]['level']+1) 
-               for k,v in game.buildings[self.selected_building]['base_cost'].items()}
-        for res, amount in cost.items():
-            zh_res = self.RESOURCE_NAMES.get(res, res)
-            if res in ICONS:
-                icon = pygame.transform.scale(ICONS[res], (30,30))
-                surface.blit(icon, (350, y))
-                color = (255,255,255) if game.resources[res] >= amount else (255,50,50)
-                text = FONT_SM.render(f"{amount}", True, color)
-                surface.blit(text, (390, y+5))
+        # 当前和升级后的生产量（仅生产型建筑）
+        if "production" in building:
+            # 当前产出
+            current_prod = building["production"]
+            curr_text = FONT_SM.render("当前产出:", True, (200,200,200))
+            surface.blit(curr_text, (320, y))
+            
+            # 升级后产出
+            next_prod = {k: v * next_level for k, v in building["production"].items()}
+            next_text = FONT_SM.render("升级后:", True, (0,200,0))
+            surface.blit(next_text, (500, y))
+            y += 30
+            
+            for res, amount in current_prod.items():
+                # 当前值
+                curr_amount = amount * current_level
+                curr_surf = FONT_SM.render(f"{curr_amount}/s", True, (200,200,200))
+                surface.blit(curr_surf, (340, y))
+                
+                # 升级后值
+                next_amount = amount * next_level
+                next_surf = FONT_SM.render(f"+{next_amount - curr_amount} → {next_amount}/s", True, (0,200,0))
+                surface.blit(next_surf, (500, y))
+                
+                # 图标
+                icon = pygame.transform.scale(ICONS[res], (25,25))
+                surface.blit(icon, (300, y))
                 y += 40
+            y += 20  # 增加间距
+        else:
+            # 非生产型建筑的说明
+            desc_text = FONT_SM.render("该建筑不产生资源", True, (200,200,200))
+            surface.blit(desc_text, (350, y))
+            y += 60
+
+        # 资源消耗（所有建筑通用）
+        cost_title = FONT_SM.render("升级需要:", True, (200,200,200))
+        surface.blit(cost_title, (320, y))
+        y += 30
         
-        # 确认按钮（确保按钮位置正确）
-        confirm_btn = Button((400, 450, 120, 40), "确认升级", self.do_upgrade)
-        cancel_btn = Button((600, 450, 120, 40), "取消", self.cancel_upgrade)
+        cost = {k: v * next_level for k,v in building["base_cost"].items()}
+        for res, amount in cost.items():
+            icon = pygame.transform.scale(ICONS[res], (25,25))
+            surface.blit(icon, (320, y))
+            
+            color = (0,200,0) if game.resources[res] >= amount else (200,0,0)
+            text = FONT_SM.render(f"{amount}", True, color)
+            surface.blit(text, (350, y))
+            y += 40
+        
+        # 确认按钮位置调整
+        confirm_btn = Button((400, y+20, 120, 40), "确认升级", self.do_upgrade)
+        cancel_btn = Button((600, y+20, 120, 40), "取消", self.cancel_upgrade)
         confirm_btn.draw(surface)
         cancel_btn.draw(surface)
-        self.confirm_buttons = [confirm_btn, cancel_btn]  # 必须更新按钮列表
+        self.confirm_buttons = [confirm_btn, cancel_btn]
 
     def do_upgrade(self):
         """执行升级"""
