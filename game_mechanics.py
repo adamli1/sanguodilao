@@ -72,11 +72,45 @@ class Game:
                 "level": 0,
                 "base_cost": {"wood": 60, "stone": 40},
                 "unlocked": False,
-                "unlock_condition": {"stone_quarry": 1, "gold_mine": 1}
+                "unlock_condition": {"stone_quarry": 1, "gold_mine": 1},
+                "heal_cost": {"food": 50},  # 新增：每次治疗消耗
+                "heal_percent": 0.2  # 新增：每次恢复最大兵力的百分比
             }
         }
         self.production_interval = 3  # 每3秒自动生产一次资源
         self.production_timer = None
+    
+    def heal_troops(self):
+        """通过兵营恢复兵力"""
+        barracks = self.buildings["barracks"]
+        
+        # 检查兵营等级
+        if barracks["level"] == 0:
+            return False, "兵营尚未建造"
+        
+        # 计算总消耗
+        required_food = barracks["heal_cost"]["food"] * barracks["level"]
+        
+        # 检查资源是否充足
+        if self.resources["food"] < required_food:
+            return False, "粮食不足"
+        
+        # 检查是否有需要恢复的兵力
+        total_loss = sum(h.max_troops - h.troops for h in self.party)
+        if total_loss == 0:
+            return False, "没有需要恢复的兵力"
+        
+        # 扣除资源
+        self.resources["food"] -= required_food
+        
+        # 恢复兵力
+        heal_amount = barracks["heal_percent"] * barracks["level"]
+        for hero in self.party:
+            recover = min(hero.max_troops - hero.troops, 
+                        int(hero.max_troops * heal_amount))
+            hero.troops += recover
+        
+        return True, f"消耗{required_food}粮食，恢复{heal_amount*100}%最大兵力"
 
     def produce_resources(self):
         """根据所有建筑等级进行资源生产"""

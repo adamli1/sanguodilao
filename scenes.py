@@ -67,7 +67,7 @@ FONT_LG = pygame.font.Font("ui/SimHei.ttf", 48)
 class MainScene(Scene):
     def __init__(self):
         self.buttons = [
-            Button((100, 500, 200, 50), "建筑升级", lambda: game_state.change_scene(BuildScene())),
+            Button((100, 500, 200, 50), "建筑系统", lambda: game_state.change_scene(BuildScene())),
             Button((350, 500, 200, 50), "英雄探索", self.explore),
             Button((600, 500, 200, 50), "编队管理", lambda: game_state.change_scene(PartyScene())),
             Button((850, 500, 200, 50), "开始战斗", self.start_battle)
@@ -165,6 +165,9 @@ class MainScene(Scene):
 class BuildScene(Scene):
     def __init__(self):
         self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.heal_btn = Button((200, 600, 200, 40),  # 新增恢复按钮
+            lambda: f"治疗部队（需食物:{game.buildings['barracks']['heal_cost']['food']*game.buildings['barracks']['level']})",
+            self.heal_troops)
         self.build_buttons = []
         self.refresh_buttons()
 
@@ -184,6 +187,15 @@ class BuildScene(Scene):
                 )
                 self.build_buttons.append(btn)
                 y += 70
+        
+        # 添加治疗按钮状态更新
+        self.heal_btn.hover = self.heal_btn.rect.collidepoint(pygame.mouse.get_pos())
+
+    def heal_troops(self):
+        success, message = game.heal_troops()
+        if not success:
+            print(message)  # 在实际游戏中可以显示UI提示
+        self.refresh_buttons()
 
     def get_cost_string(self, building_name):
         """生成资源需求字符串"""
@@ -202,6 +214,9 @@ class BuildScene(Scene):
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
+                # 添加治疗按钮检测
+                if self.heal_btn.rect.collidepoint(pos):
+                    self.heal_btn.callback()
                 if self.back_btn.rect.collidepoint(pos):
                     self.back_btn.callback()
                 for btn in self.build_buttons:
@@ -215,6 +230,7 @@ class BuildScene(Scene):
     def draw(self, surface):
         surface.fill(COLORS["background"])
         self.back_btn.draw(surface)
+        self.heal_btn.draw(surface)  # 绘制治疗按钮
         for btn in self.build_buttons:
             btn.hover = btn.rect.collidepoint(pygame.mouse.get_pos())
             btn.draw(surface)
