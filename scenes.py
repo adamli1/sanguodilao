@@ -82,6 +82,8 @@ class MainScene(Scene):
         
         self.player_pos = [SCREEN_WIDTH//2, SCREEN_HEIGHT//2]  # 新增：玩家初始位置
         self.move_speed = 5  # 移动速度
+        self.city_rect = pygame.Rect(100, 100, 200, 200)  # 新增：城池区域（x, y, width, height）
+        self.in_city = False  # 是否在城池范围内
 
     def start_battle(self):
         if not game.party:
@@ -90,9 +92,11 @@ class MainScene(Scene):
         game_state.change_scene(BattleScene(game_state))  # 传递game_state参数
 
     def handle_events(self, events):
-        # 先处理键盘输入
+        # 检测玩家是否在城池范围内
+        self.in_city = self.city_rect.collidepoint(self.player_pos)
+        
+        # 处理键盘输入（WSAD移动）
         keys = pygame.key.get_pressed()
-        # 移动处理（新增WSAD控制）
         if keys[K_w]:
             self.player_pos[1] -= self.move_speed
         if keys[K_s]:
@@ -105,6 +109,10 @@ class MainScene(Scene):
         # 边界限制
         self.player_pos[0] = max(50, min(SCREEN_WIDTH-50, self.player_pos[0]))
         self.player_pos[1] = max(50, min(SCREEN_HEIGHT-150, self.player_pos[1]))  # 底部留出按钮空间
+        
+        # 处理空格键进入建筑场景
+        if keys[K_SPACE] and self.in_city:
+            game_state.change_scene(BuildScene())
         
         # 原有鼠标事件处理
         for event in events:
@@ -121,9 +129,19 @@ class MainScene(Scene):
     def draw(self, surface):
         surface.fill(COLORS["background"])
         
-        # 绘制玩家角色（新增）
+        # 绘制城池区域
+        pygame.draw.rect(surface, (150, 100, 50), self.city_rect)  # 棕色矩形表示城池
+        city_text = FONT_SM.render("长安", True, (255, 255, 200))
+        text_rect = city_text.get_rect(center=self.city_rect.center)
+        surface.blit(city_text, text_rect)
+        
+        # 当玩家在城池内时显示提示
+        if self.in_city:
+            tip_text = FONT_SM.render("进入主城", True, (200, 200, 0))
+            surface.blit(tip_text, (self.city_rect.centerx - 100, self.city_rect.bottom + 10))
+        
+        # 绘制玩家角色
         pygame.draw.circle(surface, (0, 200, 255), self.player_pos, 20)  # 蓝色圆形表示玩家
-        # 绘制角色朝向指示器
         pygame.draw.circle(surface, (255, 255, 0), self.player_pos, 5)  # 黄色前向指示
         
         # 绘制资源面板（顶部横排） - 修改这部分
