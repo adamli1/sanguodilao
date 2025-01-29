@@ -226,6 +226,7 @@ class BuildScene(Scene):
         self.selected_building = None
         self.confirm_rect = None
         self.confirm_buttons = []
+        self.unlock_rect = None  # 新增解锁需求弹窗
 
     def heal_troops(self):
         """治疗部队方法（保持原有逻辑）"""
@@ -239,23 +240,34 @@ class BuildScene(Scene):
         self.heal_btn.hover = self.heal_btn.rect.collidepoint(pygame.mouse.get_pos())
 
     def draw_building(self, surface, name, data, pos):
-        """绘制单个建筑元素"""
+        """绘制单个建筑元素（包含解锁状态）"""
         zh_name = self.BUILDING_NAMES.get(name, name)
         
-        # 建筑主体
-        pygame.draw.rect(surface, (100, 100, 150), (pos[0], pos[1], 120, 120), border_radius=10)
+        # 根据解锁状态调整颜色
+        main_color = (100, 100, 150) if data['unlocked'] else (60, 60, 80)
+        pygame.draw.rect(surface, main_color, (pos[0], pos[1], 120, 120), border_radius=10)
         
-        # 等级徽章
-        pygame.draw.circle(surface, (200, 200, 100), (pos[0]+100, pos[1]+20), 16)
-        level_text = FONT_SM.render(str(data['level']), True, (50, 50, 50))
-        surface.blit(level_text, (pos[0]+100 - level_text.get_width()//2, pos[1]+20 - level_text.get_height()//2))
-        
-        # 建筑名称
-        name_text = FONT_SM.render(zh_name, True, COLORS["text"])
-        surface.blit(name_text, (pos[0]+(120-name_text.get_width())//2, pos[1]+130))
+        # 未解锁建筑的特殊处理
+        if not data['unlocked']:
+            # 绘制锁定图标
+            lock_icon = FONT_SM.render("🔒", True, (200, 200, 200))
+            surface.blit(lock_icon, (pos[0]+40, pos[1]+40))
+            
+            # 显示建筑名称（灰色）
+            name_text = FONT_SM.render(zh_name, True, (150,150,150))
+            surface.blit(name_text, (pos[0]+(120-name_text.get_width())//2, pos[1]+130))
+        else:
+            # 等级徽章
+            pygame.draw.circle(surface, (200, 200, 100), (pos[0]+100, pos[1]+20), 16)
+            level_text = FONT_SM.render(str(data['level']), True, (50, 50, 50))
+            surface.blit(level_text, (pos[0]+100 - level_text.get_width()//2, pos[1]+20 - level_text.get_height()//2))
+            
+            # 建筑名称
+            name_text = FONT_SM.render(zh_name, True, COLORS["text"])
+            surface.blit(name_text, (pos[0]+(120-name_text.get_width())//2, pos[1]+130))
 
     def draw_confirmation(self, surface):
-        """绘制升级确认弹窗"""
+        """绘制升级确认弹窗（保持原有逻辑）"""
         dialog_rect = pygame.Rect(300, 200, 600, 300)
         pygame.draw.rect(surface, (80, 80, 100), dialog_rect, border_radius=10)
         
@@ -277,12 +289,12 @@ class BuildScene(Scene):
                 surface.blit(text, (390, y+5))
                 y += 40
         
-        # 确认按钮
+        # 确认按钮（确保按钮位置正确）
         confirm_btn = Button((400, 450, 120, 40), "确认升级", self.do_upgrade)
         cancel_btn = Button((600, 450, 120, 40), "取消", self.cancel_upgrade)
         confirm_btn.draw(surface)
         cancel_btn.draw(surface)
-        self.confirm_buttons = [confirm_btn, cancel_btn]
+        self.confirm_buttons = [confirm_btn, cancel_btn]  # 必须更新按钮列表
 
     def do_upgrade(self):
         """执行升级"""
@@ -295,34 +307,66 @@ class BuildScene(Scene):
         self.selected_building = None
         self.confirm_rect = None
 
+    def draw_unlock_requirement(self, surface):
+        """绘制解锁需求弹窗"""
+        dialog_rect = pygame.Rect(300, 200, 600, 300)
+        pygame.draw.rect(surface, (80, 80, 100), dialog_rect, border_radius=10)
+        
+        # 标题
+        title = FONT_MD.render(f"解锁需求", True, (255,255,200))
+        surface.blit(title, (dialog_rect.centerx - title.get_width()//2, 220))
+        
+        # 显示解锁条件
+        y = 280
+        building = game.buildings[self.selected_building]
+        for req_name, req_level in building['unlock_condition'].items():
+            current_level = game.buildings[req_name]['level']
+            color = (0,200,0) if current_level >= req_level else (200,0,0)
+            
+            text = FONT_SM.render(f"{req_name} Lv{req_level}（当前：{current_level}）", True, color)
+            surface.blit(text, (350, y))
+            y += 40
+
     def handle_events(self, events):
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 
-                if self.selected_building:
+                # 优先处理确认弹窗的按钮
+                if self.confirm_buttons:
                     for btn in self.confirm_buttons:
                         if btn.rect.collidepoint(pos):
                             btn.callback()
+                            return  # 确保点击弹窗按钮后不触发其他操作
+                
+                # 处理解锁需求弹窗
+                if self.unlock_rect and self.unlock_rect.collidepoint(pos):
+                    self.selected_building = None
+                    self.unlock_rect = None
                     continue
                 
-                # 检测建筑点击
+                # 检测建筑点击（遍历所有建筑）
                 col_count = 4
                 start_x, start_y = 100, 100
                 for i, (name, data) in enumerate(game.buildings.items()):
-                    if not data["unlocked"]:
-                        continue
                     col = i % col_count
                     row = i // col_count
                     x = start_x + col * 180
                     y = start_y + row * 180
-                    if pygame.Rect(x, y, 120, 150).collidepoint(pos):
+                    building_rect = pygame.Rect(x, y, 120, 150)
+                    
+                    if building_rect.collidepoint(pos):
                         self.selected_building = name
-                        self.confirm_rect = pygame.Rect(300, 200, 600, 300)
+                        if data['unlocked']:
+                            self.confirm_rect = pygame.Rect(300, 200, 600, 300)
+                            self.unlock_rect = None
+                        else:
+                            self.unlock_rect = pygame.Rect(300, 200, 600, 300)
+                            self.confirm_rect = None
                         break
                 
                 # 处理治疗和返回按钮
-                if self.heal_btn.rect.collidepoint(pos):
+                if self.heal_btn.rect.collidepoint(pos) and game.buildings['兵营']['unlocked']:
                     self.heal_btn.callback()
                 if self.back_btn.rect.collidepoint(pos):
                     self.back_btn.callback()
@@ -332,25 +376,29 @@ class BuildScene(Scene):
         self.back_btn.draw(surface)
         self.heal_btn.draw(surface)
         
-        # 绘制建筑网格
+        # 绘制所有建筑（不再过滤unlocked）
         col_count = 4
         start_x, start_y = 100, 100
         for i, (name, data) in enumerate(game.buildings.items()):
-            if not data["unlocked"]:
-                continue
             col = i % col_count
             row = i // col_count
             x = start_x + col * 180
             y = start_y + row * 180
             self.draw_building(surface, name, data, (x, y))
         
-        # 绘制确认弹窗
-        if self.selected_building:
-            # 半透明遮罩
+        # 绘制解锁需求弹窗
+        if self.selected_building and not game.buildings[self.selected_building]['unlocked']:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 128))
             surface.blit(overlay, (0,0))
-            self.draw_confirmation(surface)
+            self.draw_unlock_requirement(surface)
+
+        # 绘制升级确认弹窗（新增这部分）
+        if self.selected_building and game.buildings[self.selected_building]['unlocked']:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 128))
+            surface.blit(overlay, (0,0))
+            self.draw_confirmation(surface)  # 确保调用绘制确认弹窗的方法
 
 class PartyScene(Scene):
     def __init__(self):
