@@ -117,29 +117,3 @@ class BattleSystem:
             else:
                 hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
  
-    def battle_loop(self):
-        """主战斗循环"""
-        result = None
-        round_count = 1
-        while True:
-            print(f"\n=== 第 {round_count} 回合 ===")
-            time.sleep(1)
-            self.determine_order()
-            
-            for fighter in self.turn_order:
-                if not fighter.is_alive:
-                    continue
-                    
-                print(f"\n{fighter.name} 的行动：")
-                self.auto_ai_action(fighter)
-                
-                # 检查战斗结果
-                if all(not e.is_alive for e in self.enemies):
-                    print("🎉 战斗胜利！")
-                    self.distribute_exp()
-                    return "win"
-                if all(not h.is_alive for h in self.party):
-                    print("💀 队伍全灭...")
-                    return "lose"
-            
-            round_count += 1

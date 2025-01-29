@@ -317,7 +317,7 @@ class BattleScene(Scene):
         self.attack_animations = []  # 存储攻击动画 (start_pos, end_pos, duration)
         self.current_turn_index = 0  # 当前行动单位索引
         self.waiting_for_animation = False  # 是否正在等待动画完成
-        self.action_delay = 500  # 每个动作之间的延迟（毫秒）
+        self.action_delay = 0  # 每个动作之间的延迟（毫秒）
         self.last_action_time = 0  # 上次动作时间
         
     def handle_events(self, events):
@@ -416,7 +416,7 @@ class BattleScene(Scene):
         # 设置动画等待状态
         self.waiting_for_animation = True
         # 1秒后解除等待状态（根据动画持续时间调整）
-        pygame.time.set_timer(pygame.USEREVENT, 1000) 
+        pygame.time.set_timer(pygame.USEREVENT, 200) 
             
     def get_combatant_pos(self, combatant):
         """获取战斗单位在屏幕上的坐标"""
