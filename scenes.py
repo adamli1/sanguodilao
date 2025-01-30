@@ -251,11 +251,15 @@ class BuildScene(Scene):
         self.unlock_rect = None  # 新增解锁需求弹窗
 
     def heal_troops(self):
-        """治疗部队方法（保持原有逻辑）"""
-        success, message = game.heal_troops()
-        if not success:
-            print(message)
-        self.refresh_buttons()
+        """治疗部队方法（适配新机制）"""
+        cost = game.buildings['兵营']['heal_cost']['粮草'] * game.buildings['兵营']['level']
+        if game.resources['粮草'] >= cost:
+            game.resources['粮草'] -= cost
+            for hero in game.party:
+                # 恢复至当前等级上限
+                hero.troops = hero.level * 10  
+            return True, "治疗成功"
+        return False, "粮草不足"
 
     def refresh_buttons(self):
         """仅更新治疗按钮状态"""

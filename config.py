@@ -111,7 +111,7 @@ HERO_POOL = {
     "UR": [
         {
             "name": "关羽",
-            "troops": 400,
+            "troops": 300,
             "strength": 55,
             "intelligence": 35,
             "agility": 30,
@@ -120,7 +120,7 @@ HERO_POOL = {
         },
         {
             "name": "吕布",
-            "troops": 450,
+            "troops": 300,
             "strength": 60,
             "intelligence": 25,
             "agility": 40,
@@ -131,7 +131,7 @@ HERO_POOL = {
     "SSR": [
         {
             "name": "赵云",
-            "troops": 350,
+            "troops": 300,
             "strength": 45,
             "intelligence": 40,
             "agility": 50,
@@ -140,7 +140,7 @@ HERO_POOL = {
         },
         {
             "name": "典韦",
-            "troops": 380,
+            "troops": 300,
             "strength": 58,
             "intelligence": 20,
             "agility": 35,
@@ -151,7 +151,7 @@ HERO_POOL = {
     "SR": [
         {
             "name": "夏侯惇",
-            "troops": 280,
+            "troops": 300,
             "strength": 48,
             "intelligence": 30,
             "agility": 38,
@@ -162,7 +162,7 @@ HERO_POOL = {
     "R": [
         {
             "name": "廖化",
-            "troops": 200,
+            "troops": 300,
             "strength": 35,
             "intelligence": 25,
             "agility": 30,
@@ -191,7 +191,7 @@ ENEMY_TEMPLATES = {
     },
     "贼将": {
         "base": {
-            "troops": 380,
+            "troops": 300,
             "strength": 35,
             "intelligence": 10,
             "agility": 15
@@ -206,7 +206,7 @@ ENEMY_TEMPLATES = {
     },
     "贪官": {
         "base": {
-            "troops": 370,
+            "troops": 300,
             "strength": 10,
             "intelligence": 30,
             "agility": 12

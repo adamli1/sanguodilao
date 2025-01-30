@@ -7,7 +7,7 @@ from config import (
     ENEMY_TEMPLATES,
     RARITY_PROB
 )
-from characters import Hero, Enemy
+from characters import Hero, Enemy, Character
 from battle import BattleSystem
 
         # 保持原Game类初始化内容不变
@@ -156,21 +156,18 @@ class Game:
             base_level = random.randint(level_range[0], level_range[1])
             
             enemy_data = copy.deepcopy(ENEMY_TEMPLATES[template])
-            # 根据等级成长属性
-            level = base_level
             growth = enemy_data["growth"]
-            enemy = Enemy(
-                name=f"{template} Lv{level}",
-                troops=enemy_data["base"]["troops"] + growth["troops"] * level,
-                strength=enemy_data["base"]["strength"] + growth["strength"] * level,
-                intelligence=enemy_data["base"]["intelligence"] + growth["intelligence"] * level,
-                agility=enemy_data["base"]["agility"] + growth["agility"] * level
-            )
             
-             # 添加技能
-            for skill_key in enemy_data["skills"]:
-                enemy.skills.append(SKILL_LIBRARY[skill_key])
-            enemy.level = level
+            # 计算属性时包含等级参数
+            enemy = Character(
+                name=f"{template}·Lv{base_level}",
+                troops=base_level * 100,  # 直接使用等级计算
+                strength=enemy_data["base"]["strength"] + growth["strength"] * (base_level-1),
+                intelligence=enemy_data["base"]["intelligence"] + growth["intelligence"] * (base_level-1),
+                agility=enemy_data["base"]["agility"] + growth["agility"] * (base_level-1),
+                skills=[SKILL_LIBRARY[skill] for skill in enemy_data["skills"]],
+                level=base_level  # 显式传递等级参数
+            )
             self.current_enemies.append(enemy)
     
     def manage_party(self):
