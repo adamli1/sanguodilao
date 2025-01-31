@@ -1,6 +1,7 @@
 import random
 import time
 from characters import Character
+from collections import defaultdict
 
     # 保持原BattleSystem类的方法不变
     # 包括 basic_attack, trigger_skill, select_ally_target, 
@@ -14,6 +15,15 @@ class BattleSystem:
         self.game_state = game_state  # 保存引用
         self.turn_order = []  # 行动顺序队列
         self.last_action = None  # 新增属性记录最后动作
+        # 新增战斗报告数据
+        self.battle_report = {
+            'rounds': 0,
+            'damage_dealt': 0,
+            'damage_taken': 0,
+            'skills_used': defaultdict(int),
+            'hero_stats': defaultdict(lambda: {'damage_dealt': 0, 'damage_taken': 0}),
+            'result': None
+        }
 
     
     def basic_attack(self, attacker, defender):
@@ -39,6 +49,9 @@ class BattleSystem:
         for skill in attacker.skills:
             if random.random() < skill["prob"]:
                 self.trigger_skill(attacker, defender, skill)
+
+        # 记录伤害数据
+        self._record_damage(attacker, defender, damage)
 
     def trigger_skill(self, attacker, defender, skill):
         """处理技能效果"""
@@ -76,6 +89,9 @@ class BattleSystem:
                
         
         self.print_combatant_status(target)
+
+        # 记录技能使用
+        self.battle_report['skills_used'][skill['name']] += 1
 
     def select_ally_target(self, attacker):
         """选择友方目标"""
@@ -126,4 +142,27 @@ class BattleSystem:
                 hero.add_exp(exp_per_hero)
             else:
                 hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
+
+    def _record_damage(self, attacker, defender, amount):
+        """记录伤害统计"""
+        if attacker in self.party:
+            self.battle_report['damage_dealt'] += amount
+            self.battle_report['hero_stats'][attacker.name]['damage_dealt'] += amount
+        else:
+            self.battle_report['damage_taken'] += amount
+        
+        if defender in self.party:
+            self.battle_report['damage_taken'] += amount
+            self.battle_report['hero_stats'][defender.name]['damage_taken'] += amount
+        else:
+            self.battle_report['damage_dealt'] += amount
+
+    def battle_loop(self):
+        self.determine_order()
+        while True:
+            self.battle_report['rounds'] += 1  # 记录回合数
+            # ... 原有战斗循环代码 ...
+            if battle_over:
+                self.battle_report['result'] = '胜利' if any(h.is_alive for h in self.party) else '失败'
+                return
  

@@ -567,16 +567,27 @@ class BattleScene(Scene):
         self.waiting_for_animation = False  # 是否正在等待动画完成
         self.action_delay = 0  # 每个动作之间的延迟（毫秒）
         self.last_action_time = 0  # 上次动作时间
+        self.show_report = False  # 新增报告显示状态
+        self.report_buttons = []  # 统一使用这个按钮列表
         
     def handle_events(self, events):
         for event in events:
+            if event.type == KEYDOWN:
+                if event.key == K_r and not self.show_report:
+                    self.show_report = True  # 按R键显示报告
             if event.type == pygame.USEREVENT:
                 self.waiting_for_animation = False
                 pygame.time.set_timer(pygame.USEREVENT, 0)  # 清除定时器
 
             if event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                if self.battle_over and self.back_button.rect.collidepoint(pos):
+                # 处理所有按钮
+                for btn in self.report_buttons:
+                    if btn.rect.collidepoint(pos):
+                        btn.callback()
+                        return
+                # 处理返回按钮（当不在报告界面时）
+                if self.back_button.rect.collidepoint(pos) and not self.show_report:
                     self.back_button.callback()
     
     def update(self):
@@ -772,17 +783,78 @@ class BattleScene(Scene):
             surface.blit(text, (pos[0]+20, pos[1]-60 - d))        
 
         # 绘制战斗结果
-        if self.battle_over:
+        if self.battle_over and not self.show_report:
             result_text = "战斗胜利！" if self.battle_result == "win" else "战斗失败！"
             text_surf = FONT_LG.render(result_text, True, COLORS["text"])
             text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             surface.blit(text_surf, text_rect)
-            self.back_button.draw(surface)
+            
+            # 创建并保存按钮实例
+            self.report_buttons = [
+                Button((SCREEN_WIDTH//2 - 220, SCREEN_HEIGHT//2 + 50, 200, 40),
+                      "查看详细报告",
+                      lambda: setattr(self, 'show_report', True)),
+                Button((SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 50, 200, 40),
+                      "返回主界面",
+                      self.back_button.callback)
+            ]
+            
+            # 绘制按钮
+            for btn in self.report_buttons:
+                btn.draw(surface)
 
-        # 当等待动画时显示提示
-        if self.waiting_for_animation:
-            text = FONT_SM.render("行动中...", True, (200, 200, 200))
-            surface.blit(text, (SCREEN_WIDTH//2-50, SCREEN_HEIGHT//2))  
+        # 当显示报告时
+        if self.show_report:
+            self._draw_battle_report(surface)
+
+    def _draw_battle_report(self, surface):
+        """绘制战斗报告界面"""
+        # 半透明背景
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        surface.blit(overlay, (0, 0))
+        
+        # 报告内容
+        report = self.battle_system.battle_report
+        y = 100
+        texts = [
+            f"战斗结果: {report['result']}",
+            f"总回合数: {report['rounds']}",
+            f"造成伤害: {report['damage_dealt']}",
+            f"承受伤害: {report['damage_taken']}",
+            "使用技能:"
+        ]
+        
+        # 绘制文本
+        for text in texts:
+            text_surf = FONT_MD.render(text, True, (255, 255, 255))
+            surface.blit(text_surf, (200, y))
+            y += 40
+        
+        # 绘制技能统计
+        y += 20
+        for skill, count in report['skills_used'].items():
+            text = f"- {skill}: {count}次"
+            text_surf = FONT_SM.render(text, True, (200, 200, 200))
+            surface.blit(text_surf, (250, y))
+            y += 30
+        
+        # 绘制英雄数据
+        y += 40
+        surface.blit(FONT_MD.render("英雄表现:", True, (255, 255, 255)), (200, y))
+        y += 50
+        for name, stats in report['hero_stats'].items():
+            text = f"{name}: 造成 {stats['damage_dealt']} / 承受 {stats['damage_taken']}"
+            text_surf = FONT_SM.render(text, True, (200, 200, 255))
+            surface.blit(text_surf, (250, y))
+            y += 35
+        
+        # 返回按钮（返回到战斗结果界面）
+        back_btn = Button((SCREEN_WIDTH//2-100, SCREEN_HEIGHT-100, 200, 50), 
+                        "返回战斗结果 (ESC)", 
+                        lambda: setattr(self, 'show_report', False))  # 修改回调函数
+        back_btn.draw(surface)
+        self.report_buttons = [back_btn]
 
 # 添加新的探索场景
 class ExploreScene(Scene):
