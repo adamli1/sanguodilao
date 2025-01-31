@@ -3,16 +3,18 @@ import time
 from characters import Character
 from collections import defaultdict
 
+
     # 保持原BattleSystem类的方法不变
     # 包括 basic_attack, trigger_skill, select_ally_target, 
     # determine_order, print_combatant_status, auto_ai_action, battle_loop
     # （由于篇幅限制，具体方法实现此处省略，保持原样即可）
 
 class BattleSystem:
-    def __init__(self, party, enemies, game_state):
+    def __init__(self, party, enemies, game, game_state):
         self.party = party
         self.enemies = enemies
-        self.game_state = game_state  # 保存引用
+        self.game = game        # 数据操作
+        self.game_state = game_state  # 场景操作
         self.turn_order = []  # 行动顺序队列
         self.last_action = None  # 新增属性记录最后动作
         # 新增战斗报告数据
@@ -169,6 +171,20 @@ class BattleSystem:
                 hero.add_exp(exp_per_hero)
             else:
                 hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
+
+        # 新增掉落逻辑（移除胜利判断）
+        # 固定掉落1张探索卡
+        consumables = {"探索卡": 1}
+        # 50%概率掉落随机材料
+        materials = {}
+        if random.random() < 0.5:
+            hero_names = list(self.game.materials.keys())
+            if hero_names:
+                materials[random.choice(hero_names)] = 1
+        # 固定掉落1个神秘碎片（其他类）
+        others = {"神秘碎片": 1}
+        
+        self.game.add_battle_loot(consumables, materials, others)
 
 
  

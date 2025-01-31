@@ -555,7 +555,13 @@ class PartyScene(Scene):
 
 class BattleScene(Scene):
     def __init__(self, game_state):
-        self.battle_system = BattleSystem(game.party, game.current_enemies, game_state)  # 传递game_state
+        super().__init__()
+        self.battle_system = BattleSystem(
+            game.party, 
+            game.current_enemies,
+            game,      # 传递game实例
+            game_state # 传递game_state实例
+        )
         self.game_state = game_state  # 保存引用
         self.turn_idx = 0
         self.battle_result = None  # 用于存储战斗结果
@@ -1093,9 +1099,10 @@ class InventoryScene(Scene):
         # 根据当前标签绘制内容
         if self.current_tab == 0:  # 材料卡
             self._draw_materials(surface)
+        elif self.current_tab == 1:  # 消耗品
+            self._draw_consumables(surface)
         else:  # 其他标签预留位置
-            tip_text = FONT_MD.render("空空如也", True, (150,150,150))
-            surface.blit(tip_text, (SCREEN_WIDTH//2-60, 300))
+            self._draw_other(surface)
 
     def _draw_materials(self, surface):
         """绘制材料卡内容（原逻辑）"""
@@ -1123,6 +1130,45 @@ class InventoryScene(Scene):
             
             # 占位图标
             pygame.draw.circle(surface, (150, 150, 200), (x + 40, y + 60), 30)
+
+    def _draw_consumables(self, surface):
+        """绘制消耗品内容（在原有方法基础上添加）"""
+        start_x, start_y = 100, 150
+        col_spacing = 250
+        row_spacing = 150
+        
+        # 显示探索卡（保持与材料卡相似的样式）
+        card_count = game.consumables.get("探索卡", 0)
+        
+        # 绘制卡片背景
+        pygame.draw.rect(surface, (80, 80, 100), (start_x, start_y, 200, 120), border_radius=8)
+        
+        # 物品名称
+        name_text = FONT_SM.render("探索卡", True, (255, 255, 200))
+        surface.blit(name_text, (start_x + 10, start_y + 10))
+        
+        # 物品数量
+        count_text = FONT_MD.render(f"×{card_count}", True, (200, 200, 0))
+        surface.blit(count_text, (start_x + 150 - count_text.get_width(), start_y + 90))
+        
+        # 占位图标
+        pygame.draw.circle(surface, (150, 200, 150), (start_x + 40, start_y + 60), 30)
+
+    def _draw_other(self, surface):
+        """绘制其他物品"""
+        start_x, start_y = 100, 150
+        col_spacing = 250
+        
+        # 显示神秘碎片
+        if "神秘碎片" in game.other_items:
+            count = game.other_items["神秘碎片"]
+            pygame.draw.rect(surface, (80, 80, 100), (start_x, start_y, 200, 120), border_radius=8)
+            name_text = FONT_SM.render("神秘碎片", True, (200, 150, 200))
+            surface.blit(name_text, (start_x + 10, start_y + 10))
+            count_text = FONT_MD.render(f"×{count}", True, (200, 200, 0))
+            surface.blit(count_text, (start_x + 150 - count_text.get_width(), start_y + 90))
+            pygame.draw.polygon(surface, (180, 120, 200), 
+                [(start_x+40, start_y+30), (start_x+60, start_y+50), (start_x+40, start_y+70), (start_x+20, start_y+50)])
 
 class MapSelectScene(Scene):
     def __init__(self):

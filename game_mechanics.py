@@ -42,6 +42,11 @@ class Game:
         self.city_heroes = []  # 城池中的所有英雄
         self.party = []        # 出战队伍（最多3人）
         self.materials = {}    # 改为字典存储，格式：{"英雄名": 数量}
+        
+        # 新增消耗品栏（独立存储）
+        self.consumables = {
+            "探索卡": 10  # 初始拥有10张
+        }
 
         # 建筑系统重构
         self.buildings = {
@@ -81,6 +86,7 @@ class Game:
         }
         self.production_interval = 3  # 每3秒自动生产一次资源
         self.production_timer = None
+        self.other_items = {}  # 新增其他物品存储
     
     def heal_troops(self):
         """通过兵营恢复兵力"""
@@ -403,3 +409,12 @@ class Game:
         else:
             print("探索未发现任何有价值的东西")
             return None  # 失败时返回None
+
+    def add_battle_loot(self, consumables, materials, others):
+        """添加战斗掉落"""
+        for item, amount in consumables.items():
+            self.consumables[item] = self.consumables.get(item, 0) + amount
+        for hero, amount in materials.items():
+            self.materials[hero] = self.materials.get(hero, 0) + amount
+        for item, amount in others.items():
+            self.other_items[item] = self.other_items.get(item, 0) + amount
