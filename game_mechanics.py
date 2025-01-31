@@ -9,6 +9,7 @@ from config import (
 )
 from characters import Hero, Enemy, Character
 from battle import BattleSystem
+from collections import defaultdict
 
         # 保持原Game类初始化内容不变
         # 包括资源、队伍、建筑等初始化
@@ -147,26 +148,47 @@ class Game:
                 print("技能：" + ", ".join([s["name"] for s in hero.skills]))
                 print("----------------")
 
-    def generate_enemies(self, level_range=(1,10)):
+    def generate_enemies(self, map_info):
         self.current_enemies = []
         template_names = list(ENEMY_TEMPLATES.keys())
         
-        for _ in range(random.randint(2,4)):
+        # 天干序号列表
+        tiangan = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
+        # 使用字典记录每个模板的生成次数
+        template_count = defaultdict(int)
+
+        # 根据地图配置生成敌人
+        enemy_count = {
+            "黄巾起义": 2,
+            "讨伐董卓": 3,
+            "群雄割据": 3
+        }.get(map_info["name"], 2)
+        
+        base_level = {
+            "黄巾起义": 3,
+            "讨伐董卓": 5,
+            "群雄割据": 10
+        }.get(map_info["name"], 1)
+        
+        for _ in range(enemy_count):
             template = random.choice(template_names)
-            base_level = random.randint(level_range[0], level_range[1])
+            template_count[template] += 1
+            # 获取天干序号（超过10个会循环）
+            idx = (template_count[template] - 1) % 10
+            suffix = tiangan[idx]
             
             enemy_data = copy.deepcopy(ENEMY_TEMPLATES[template])
             growth = enemy_data["growth"]
             
-            # 计算属性时包含等级参数
+            # 根据固定等级计算属性
             enemy = Character(
-                name=f"{template}·Lv{base_level}",
-                troops=base_level * 100,  # 直接使用等级计算
+                name=f"{template}{suffix}·Lv{base_level}",  # 修改名称格式
+                troops=base_level * 100,
                 strength=enemy_data["base"]["strength"] + growth["strength"] * (base_level-1),
                 intelligence=enemy_data["base"]["intelligence"] + growth["intelligence"] * (base_level-1),
                 agility=enemy_data["base"]["agility"] + growth["agility"] * (base_level-1),
                 skills=[SKILL_LIBRARY[skill] for skill in enemy_data["skills"]],
-                level=base_level  # 显式传递等级参数
+                level=base_level
             )
             self.current_enemies.append(enemy)
     

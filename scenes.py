@@ -784,30 +784,38 @@ class BattleScene(Scene):
             text = FONT_SM.render(value, True, (255, 0, 255))
             surface.blit(text, (pos[0]+20, pos[1]-60 - d))        
 
-        # 绘制战斗结果
+        # 战斗结果界面
         if self.battle_over and not self.show_report:
             result_text = "战斗胜利！" if self.battle_result == "win" else "战斗失败！"
             text_surf = FONT_LG.render(result_text, True, COLORS["text"])
             text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             surface.blit(text_surf, text_rect)
             
-            # 创建并保存按钮实例
+            # 初始化基础按钮
             self.report_buttons = [
-                Button((SCREEN_WIDTH//2 - 220, SCREEN_HEIGHT//2 + 50, 200, 40),
+                Button((SCREEN_WIDTH//2 - 220, SCREEN_HEIGHT - 100, 200, 40),
                       "查看详细报告",
                       lambda: setattr(self, 'show_report', True)),
-                Button((SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 50, 200, 40),
+                Button((SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT - 100, 200, 40),
                       "返回主界面",
                       self.back_button.callback)
             ]
-            
-            # 绘制按钮
+            # 绘制基础按钮
             for btn in self.report_buttons:
                 btn.draw(surface)
-
-        # 当显示报告时
+            
+        # 报告界面
         if self.show_report:
             self._draw_battle_report(surface)
+            # 添加返回按钮并绘制
+            return_btn = Button(
+                (SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT - 100, 200, 40),
+                "返回结果",
+                lambda: setattr(self, 'show_report', False)
+            )
+            return_btn.draw(surface)
+            # 更新按钮列表
+            self.report_buttons = [return_btn]
 
     def _draw_battle_report(self, surface):
         # 添加稀有度颜色定义
@@ -1122,19 +1130,22 @@ class MapSelectScene(Scene):
         self.maps = [
             {
                 "name": "黄巾起义",
-                "level_range": (1, 5),
+                "level": 3,  # 固定等级
+                "count": 2,  # 敌人数量
                 "desc": "剿灭黄巾乱党，匡扶汉室",
                 "color": (150, 100, 50)
             },
             {
                 "name": "讨伐董卓",
-                "level_range": (5, 10),
+                "level": 5,
+                "count": 3,
                 "desc": "十八路诸侯共诛国贼",
                 "color": (100, 50, 150)
             },
             {
                 "name": "群雄割据",
-                "level_range": (10, 20),
+                "level": 10,
+                "count": 3,
                 "desc": "诸侯并起，逐鹿中原",
                 "color": (50, 150, 100)
             }
@@ -1175,8 +1186,8 @@ class MapSelectScene(Scene):
             name_text = FONT_MD.render(map_info["name"], True, (255,255,200))
             surface.blit(name_text, (x + 20, y + 20))
             
-            # 等级范围
-            level_text = FONT_SM.render(f"敌人等级: {map_info['level_range'][0]}-{map_info['level_range'][1]}", True, (200,200,200))
+            # 等级
+            level_text = FONT_SM.render(f"敌人等级: {map_info['level']}", True, (200,200,200))
             surface.blit(level_text, (x + 20, y + 60))
             
             # 描述
@@ -1188,8 +1199,8 @@ class MapSelectScene(Scene):
             self.buttons.append(btn)
 
     def start_battle(self, map_info):
-        game.selected_map = map_info  # 存储当前选择的地图
-        game.generate_enemies(map_info["level_range"])
+        game.selected_map = map_info
+        game.generate_enemies(map_info)  # 传递完整的地图信息
         game_state.change_scene(BattleScene(game_state))
 
 # 创建场景管理器

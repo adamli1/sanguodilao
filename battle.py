@@ -178,12 +178,12 @@ class BattleSystem:
             
             # 检查战斗结果
             if all(not e.is_alive for e in self.enemies):
-                self.battle_report['result'] = '胜利'  # 明确设置结果
-                self.game_state.change_scene(MainScene())
+                self.battle_report['result'] = '胜利'
+
                 return
             elif all(not h.is_alive for h in self.party):
-                self.battle_report['result'] = '失败'  # 明确设置结果
-                self.game_state.change_scene(MainScene())
+                self.battle_report['result'] = '失败'
+
                 return
             
             # ... 原有战斗循环代码 ...
