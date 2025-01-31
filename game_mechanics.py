@@ -87,7 +87,20 @@ class Game:
         self.production_interval = 3  # 每3秒自动生产一次资源
         self.production_timer = None
         self.other_items = {}  # 新增其他物品存储
+        
+        # 在初始化部分添加
+        self._base_max_reserve = 1000
+        self.reserve_troops = 0    # 当前预备兵数量
+        
+        # 添加征募参数
+        self.recruit_cost = 100  # 每次消耗粮草
+        self.recruit_amount = 500  # 每次获得预备兵
     
+    @property
+    def max_reserve(self):
+        """动态计算预备兵上限：基础值 + 兵营等级×1000"""
+        return self._base_max_reserve + self.buildings["兵营"]["level"] * 1000
+
     def heal_troops(self):
         """通过兵营恢复兵力"""
         barracks = self.buildings["兵营"]
@@ -274,59 +287,6 @@ class Game:
                 data["unlocked"] = True
                 print(f"\n[系统] 新建筑已解锁：{building_name}！")
 
-    def show_status(self):
-        """显示当前状态"""
-        print(f"\n=== 当前资源 ===")
-        print(" | ".join([f"{k}:{v}" for k, v in self.resources.items()]))
-        
-        print("\n=== 材料卡 ===")
-        if self.materials:
-            print(" ".join([f"{k}x{v}" for k, v in self.materials.items()]))
-        else:
-            print("无")
-
-        print("\n=== 建筑状态 ===")
-        building_status = []
-        for name, data in self.buildings.items():
-            prod_str = ""
-            if "production" in data:
-                prod_str = "->" + " ".join([f"+{v*data['level']}{k}" for k,v in data["production"].items()])
-            building_status.append(f"{name}(Lv{data['level']}){prod_str}")
-        print("\n".join(building_status))
-        print(f"\n=== 英雄队伍 ===")
-        print("无" if not self.party else "\n".join([f"{h.name} (Troops:{h.troops})" for h in self.party]))
-
-        print("\n=== 英雄材料卡 ===")
-        if self.materials:
-            for hero, count in self.materials.items():
-                print(f"{hero}材料卡：{count}张")
-        else:
-            print("暂无英雄材料卡")
-
-    def show_hero_details(self):
-        """显示所有英雄详情"""
-        print("\n=== 出战英雄详情 ===")
-        if not self.party:
-            print("无")
-        else:
-            for hero in self.party:
-                print(f"{hero.name} Lv{hero.level}")
-                print(f"兵力: {hero.troops}/{hero.max_troops}")
-                print(f"力量: {hero.strength} 智力: {hero.intelligence} 敏捷: {hero.agility}")
-                print("技能：" + ", ".join([s["name"] for s in hero.skills]))
-                print("----------------")
-        
-        print("\n=== 城池英雄详情 ===")
-        if not self.city_heroes:
-            print("无")
-        else:
-            for hero in self.city_heroes:
-                print(f"{hero.name} Lv{hero.level}")
-                print(f"兵力: {hero.troops}/{hero.max_troops}")
-                print(f"力量: {hero.strength} 智力: {hero.intelligence} 敏捷: {hero.agility}")
-                print("技能：" + ", ".join([s["name"] for s in hero.skills]))
-                print("----------------")
-
     def upgrade_building(self, building_name):
         """升级指定建筑"""
         if building_name not in self.buildings:
@@ -422,3 +382,20 @@ class Game:
     def set_scene_manager(self, scene_manager):
         """注入场景管理器"""
         self.scene_manager = scene_manager
+
+    def recruit_reserves(self):
+        """征募预备兵核心逻辑"""
+        # 新增兵营等级检查（唯一需要修改的地方）
+        if self.buildings["兵营"]["level"] < 1:
+            return False, "需要兵营等级≥1"
+        
+        # 原有逻辑完全保持不变
+        if self.resources["粮草"] < self.recruit_cost:
+            return False, "粮草不足"
+        if self.reserve_troops >= self.max_reserve:
+            return False, "预备兵已达上限"
+        
+        actual_recruit = min(self.recruit_amount, self.max_reserve - self.reserve_troops)
+        self.resources["粮草"] -= self.recruit_cost
+        self.reserve_troops += actual_recruit
+        return True, f"征募了 {actual_recruit} 预备兵"

@@ -527,11 +527,13 @@ class PartyScene(Scene):
         self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.selection = None
         self.buttons = []
+        self.supply_btn = Button((SCREEN_WIDTH-170, SCREEN_HEIGHT-100, 150, 40), "补充兵力", self.supply_troops)
+        self.buttons.append(self.supply_btn)
         self.refresh_ui()
 
     def refresh_ui(self):
         """刷新编队界面"""
-        self.buttons = [self.back_btn]
+        self.buttons = [self.back_btn, self.supply_btn]
         y = 100
         
         # 当前队伍
@@ -573,6 +575,37 @@ class PartyScene(Scene):
             game.city_heroes.remove(hero)
             self.refresh_ui()
 
+    def supply_troops(self):
+        """补充兵力逻辑"""
+        party = game.party
+        total_loss = sum(h.max_troops - h.troops for h in party)
+        
+        if total_loss == 0:
+            self.status_message = "部队已满员，无需补充"
+            return
+            
+        if game.reserve_troops == 0:
+            self.status_message = "没有可用的预备兵"
+            return
+            
+        # 计算实际可补充量
+        actual_supply = min(total_loss, game.reserve_troops)
+        
+        # 平均分配逻辑
+        if actual_supply < total_loss:
+            base_supply = actual_supply // len(party)
+            remainder = actual_supply % len(party)
+            
+            for i, hero in enumerate(party):
+                supply = base_supply + (1 if i < remainder else 0)
+                hero.troops = min(hero.troops + supply, hero.max_troops)
+        else:
+            for hero in party:
+                hero.troops = hero.max_troops
+                
+        game.reserve_troops -= actual_supply
+        self.status_message = f"成功补充 {actual_supply} 兵力"
+
     def handle_events(self, events):
         for event in events:
             if event.type == MOUSEBUTTONDOWN:
@@ -589,6 +622,22 @@ class PartyScene(Scene):
         # 绘制提示文字
         tip_text = FONT_SM.render("点击队伍成员移出，点击可用英雄加入（最多3人）", True, COLORS["text"])
         surface.blit(tip_text, (100, 550))
+
+        # 新增：右下角预备兵显示（与建筑场景一致）
+        reserve_text = FONT_SM.render(
+            f"预备兵: {game.reserve_troops}/{game.max_reserve}",
+            True, 
+            (200, 200, 200)  # 灰色
+        )
+        text_rect = reserve_text.get_rect(bottomright=(SCREEN_WIDTH-20, SCREEN_HEIGHT-40))
+        surface.blit(reserve_text, text_rect)
+
+        # 新增：状态提示（在预备兵信息之上绘制）
+        if hasattr(self, 'status_message'):
+            msg_color = (0, 200, 0) if "成功" in self.status_message else (200, 0, 0)
+            msg_surf = FONT_SM.render(self.status_message, True, msg_color)
+            msg_rect = msg_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT-100))
+            surface.blit(msg_surf, msg_rect)
 
 class BattleScene(Scene):
     def __init__(self, scene_manager):
