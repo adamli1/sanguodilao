@@ -1038,6 +1038,15 @@ class ExploreScene(Scene):
         self.back_btn.draw(surface)
         self.explore_btn.draw(surface)
 
+        # 在探索按钮下方显示探索卡数量
+        btn_rect = self.explore_btn.rect
+        card_count = game.consumables.get("探索卡", 0)
+        count_text = FONT_SM.render(f"探索卡剩余：{card_count}", True, (180, 180, 180))
+        # 计算居中位置：按钮水平中心，底部+10像素
+        text_x = btn_rect.centerx - count_text.get_width() // 2
+        text_y = btn_rect.bottom + 10
+        surface.blit(count_text, (text_x, text_y))
+
         if self.result:
             # 检查英雄是否已存在
             is_existing = self.result in game.city_heroes or self.result in game.party

@@ -315,6 +315,15 @@ class Game:
     # 在main_loop的choice=="1"时调用
 
     def explore(self):
+        """执行探索逻辑"""
+        # 检查探索卡数量
+        if self.consumables.get("探索卡", 0) < 1:
+            print("需要探索卡！")
+            return None
+            
+        # 消耗一张探索卡
+        self.consumables["探索卡"] -= 1
+        
         explore_cost = 50
         if self.resources["粮草"] < explore_cost:
             print("食物不足，无法探索！")
