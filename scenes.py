@@ -1130,27 +1130,31 @@ class MapSelectScene(Scene):
         self.maps = [
             {
                 "name": "黄巾起义",
-                "level": 3,  # 固定等级
-                "count": 2,  # 敌人数量
+                "level": 3,
+                "count": 2,
                 "desc": "剿灭黄巾乱党，匡扶汉室",
-                "color": (150, 100, 50)
+                "color": (150, 100, 50),
+                "food_cost": 100  # 新增食物消耗
             },
             {
                 "name": "讨伐董卓",
                 "level": 5,
                 "count": 3,
                 "desc": "十八路诸侯共诛国贼",
-                "color": (100, 50, 150)
+                "color": (100, 50, 150),
+                "food_cost": 500  # 新增食物消耗
             },
             {
                 "name": "群雄割据",
                 "level": 10,
                 "count": 3,
                 "desc": "诸侯并起，逐鹿中原",
-                "color": (50, 150, 100)
+                "color": (50, 150, 100),
+                "food_cost": 1000  # 新增食物消耗
             }
         ]
         self.buttons = []
+        self.error_message = None  # 新增错误提示
 
     def handle_events(self, events):
         for event in events:
@@ -1190,17 +1194,34 @@ class MapSelectScene(Scene):
             level_text = FONT_SM.render(f"敌人等级: {map_info['level']}", True, (200,200,200))
             surface.blit(level_text, (x + 20, y + 60))
             
+            # 消耗粮草
+            food_text = FONT_SM.render(f"消耗粮草: {map_info['food_cost']}", True, (200,200,200))
+            surface.blit(food_text, (x + 20, y + 100))
+            
             # 描述
             desc_text = FONT_SM.render(map_info["desc"], True, (200,200,200))
-            surface.blit(desc_text, (x + 20, y + 100))
+            surface.blit(desc_text, (x + 20, y + 140))
             
             # 创建透明按钮
             btn = Button(rect, "", lambda m=map_info: self.start_battle(m))
             self.buttons.append(btn)
 
+        # 绘制错误提示
+        if self.error_message:
+            error_text = FONT_SM.render(self.error_message, True, (200, 0, 0))
+            surface.blit(error_text, (SCREEN_WIDTH//2 - error_text.get_width()//2, 550))
+
     def start_battle(self, map_info):
+        # 检查食物是否足够
+        if game.resources["粮草"] < map_info["food_cost"]:
+            self.error_message = f"粮草不足！需要 {map_info['food_cost']} 粮草"
+            return
+            
+        # 扣除食物
+        game.resources["粮草"] -= map_info["food_cost"]
         game.selected_map = map_info
-        game.generate_enemies(map_info)  # 传递完整的地图信息
+        game.generate_enemies(map_info)
+        self.error_message = None  # 清空错误提示
         game_state.change_scene(BattleScene(game_state))
 
 # 创建场景管理器
