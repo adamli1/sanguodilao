@@ -63,6 +63,8 @@ class Scene:
 FONT_SM = pygame.font.Font("ui/SimHei.ttf", 24)
 FONT_MD = pygame.font.Font("ui/SimHei.ttf", 32)
 FONT_LG = pygame.font.Font("ui/SimHei.ttf", 48)
+FONT_TINY = pygame.font.Font("ui/SimHei.ttf", 18)  # 更小的字体
+FONT_MICRO = pygame.font.Font("ui/SimHei.ttf", 14)  # 新增微型字体
 
 class MainScene(Scene):
     def __init__(self):
@@ -808,53 +810,90 @@ class BattleScene(Scene):
             self._draw_battle_report(surface)
 
     def _draw_battle_report(self, surface):
-        """绘制战斗报告界面"""
+        # 添加稀有度颜色定义
+        rarity_colors = {
+            "UR": (255, 215, 0),     # 金色
+            "SSR": (148, 0, 211),    # 紫色
+            "SR": (30, 144, 255),    # 蓝色
+            "R": (50, 205, 50),      # 绿色
+            "default": (100, 100, 100) # 灰色
+        }
+        
         # 半透明背景
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))
         surface.blit(overlay, (0, 0))
-        
-        # 报告内容
-        report = self.battle_system.battle_report
-        y = 100
-        texts = [
-            f"战斗结果: {report['result']}",
-            f"总回合数: {report['rounds']}",
-            f"造成伤害: {report['damage_dealt']}",
-            f"承受伤害: {report['damage_taken']}",
-            "使用技能:"
-        ]
-        
-        # 绘制文本
-        for text in texts:
-            text_surf = FONT_MD.render(text, True, (255, 255, 255))
-            surface.blit(text_surf, (200, y))
-            y += 40
-        
-        # 绘制技能统计
-        y += 20
-        for skill, count in report['skills_used'].items():
-            text = f"- {skill}: {count}次"
-            text_surf = FONT_SM.render(text, True, (200, 200, 200))
-            surface.blit(text_surf, (250, y))
-            y += 30
-        
-        # 绘制英雄数据
-        y += 40
-        surface.blit(FONT_MD.render("英雄表现:", True, (255, 255, 255)), (200, y))
-        y += 50
-        for name, stats in report['hero_stats'].items():
-            text = f"{name}: 造成 {stats['damage_dealt']} / 承受 {stats['damage_taken']}"
-            text_surf = FONT_SM.render(text, True, (200, 200, 255))
-            surface.blit(text_surf, (250, y))
-            y += 35
-        
-        # 返回按钮（返回到战斗结果界面）
-        back_btn = Button((SCREEN_WIDTH//2-100, SCREEN_HEIGHT-100, 200, 50), 
-                        "返回战斗结果 (ESC)", 
-                        lambda: setattr(self, 'show_report', False))  # 修改回调函数
-        back_btn.draw(surface)
-        self.report_buttons = [back_btn]
+
+        # 布局参数调整
+        screen_center_x = SCREEN_WIDTH // 2
+        start_y = SCREEN_HEIGHT // 2 - 100  # 整体下移
+        left_col_width = 100
+        avatar_size = 48
+        row_height = 28
+        column_spacing = 120
+
+        # 计算水平居中
+        participants = list(self.battle_system.battle_report['participants'].values())
+        total_width = left_col_width + len(participants)*column_spacing
+        start_x = screen_center_x - total_width//2  # 水平居中
+
+        # 绘制左侧标题列（调整垂直间距）
+        titles = ["损失兵力", "总伤害", "普攻", "技能"]
+        title_x = start_x
+        title_y = start_y + avatar_size + 45  # 增加名字下方间距
+        for i, title in enumerate(titles):
+            text = FONT_TINY.render(title, True, (200, 200, 0))
+            surface.blit(text, (title_x, title_y + i*row_height))
+
+        # 绘制每个角色的数据列
+        for col_idx, data in enumerate(participants):
+            column_center_x = start_x + left_col_width + col_idx * column_spacing
+            x = column_center_x - avatar_size//2  # 计算头像框左侧起始位置
+            y = start_y
+            combatant = data['obj']
+            
+            # 绘制头像框（以列中心为基准）
+            avatar_rect = pygame.Rect(x, y, avatar_size, avatar_size)
+            rarity = getattr(combatant, 'rarity', 'default')
+            border_color = rarity_colors.get(rarity, rarity_colors['default'])
+            pygame.draw.rect(surface, border_color, avatar_rect.inflate(6,6), border_radius=8, width=2)
+            pygame.draw.rect(surface, (40,40,40), avatar_rect, border_radius=6)
+            
+            # 角色名字（基于列中心对齐）
+            name_lines = [combatant.name]
+            name_y = y + avatar_size + 5
+            for line in name_lines:
+                if line:
+                    name_text = FONT_MICRO.render(line, True, (255,255,255))
+                    # 名字基于列中心水平居中
+                    text_x = column_center_x - name_text.get_width()//2
+                    surface.blit(name_text, (text_x, name_y))
+                    name_y += 12
+
+            # 数据项绘制（基于列中心对齐）
+            data_start_y = title_y + 10
+            # 损失兵力
+            troops_lost = data['initial_troops'] - combatant.troops
+            self._draw_centered_item(surface, column_center_x, data_start_y, f"-{troops_lost}", (200,200,200))
+            
+            # 总伤害
+            self._draw_centered_item(surface, column_center_x, data_start_y + row_height, str(data['total_dealt']), (255,100,100))
+            
+            # 普攻伤害
+            self._draw_centered_item(surface, column_center_x, data_start_y + row_height*2, str(data['basic_damage']), (200,150,100))
+            
+            # 技能伤害
+            skill_y = data_start_y + row_height*3
+            for skill, dmg in list(data['skill_damage'].items())[:2]:
+                skill_name = skill
+                self._draw_centered_item(surface, column_center_x, skill_y, f"{skill_name}:{dmg}", (100,200,255))
+                skill_y += 16
+
+    def _draw_centered_item(self, surface, center_x, y, text, color):
+        """新的居中绘制方法"""
+        text_surf = FONT_MICRO.render(text, True, color)
+        text_rect = text_surf.get_rect(center=(center_x, y))
+        surface.blit(text_surf, text_rect)
 
 # 添加新的探索场景
 class ExploreScene(Scene):

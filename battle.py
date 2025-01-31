@@ -18,14 +18,38 @@ class BattleSystem:
         # 新增战斗报告数据
         self.battle_report = {
             'rounds': 0,
-            'damage_dealt': 0,
-            'damage_taken': 0,
-            'skills_used': defaultdict(int),
-            'hero_stats': defaultdict(lambda: {'damage_dealt': 0, 'damage_taken': 0}),
-            'result': None
+            'participants': {},  # 改为字典存储每个参与者的详细数据
+            'skills_used': defaultdict(int)
         }
+        # 记录初始兵力
+        self._record_initial_troops(party + enemies)
 
-    
+    def _record_initial_troops(self, combatants):
+        """记录初始兵力"""
+        for c in combatants:
+            self.battle_report['participants'][c.name] = {
+                'obj': c,
+                'initial_troops': c.troops,
+                'basic_damage': 0,
+                'skill_damage': defaultdict(int),
+                'total_dealt': 0,
+                'total_taken': 0
+            }
+
+    def _record_damage(self, attacker, defender, amount, is_skill=False, skill_name=None):
+        """记录伤害统计"""
+        # 攻击者数据
+        if attacker.name in self.battle_report['participants']:
+            self.battle_report['participants'][attacker.name]['total_dealt'] += amount
+            if is_skill:
+                self.battle_report['participants'][attacker.name]['skill_damage'][skill_name] += amount
+            else:
+                self.battle_report['participants'][attacker.name]['basic_damage'] += amount
+        
+        # 防御者数据
+        if defender.name in self.battle_report['participants']:
+            self.battle_report['participants'][defender.name]['total_taken'] += amount
+
     def basic_attack(self, attacker, defender):
         """普通攻击并概率触发技能"""
         # 普通攻击
@@ -93,6 +117,9 @@ class BattleSystem:
         # 记录技能使用
         self.battle_report['skills_used'][skill['name']] += 1
 
+        # 记录伤害数据
+        self._record_damage(attacker, defender, effect_value, is_skill=True, skill_name=skill['name'])
+
     def select_ally_target(self, attacker):
         """选择友方目标"""
         allies = self.party if attacker in self.party else self.enemies
@@ -143,26 +170,21 @@ class BattleSystem:
             else:
                 hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
 
-    def _record_damage(self, attacker, defender, amount):
-        """记录伤害统计"""
-        if attacker in self.party:
-            self.battle_report['damage_dealt'] += amount
-            self.battle_report['hero_stats'][attacker.name]['damage_dealt'] += amount
-        else:
-            self.battle_report['damage_taken'] += amount
-        
-        if defender in self.party:
-            self.battle_report['damage_taken'] += amount
-            self.battle_report['hero_stats'][defender.name]['damage_taken'] += amount
-        else:
-            self.battle_report['damage_dealt'] += amount
-
     def battle_loop(self):
         self.determine_order()
         while True:
-            self.battle_report['rounds'] += 1  # 记录回合数
-            # ... 原有战斗循环代码 ...
-            if battle_over:
-                self.battle_report['result'] = '胜利' if any(h.is_alive for h in self.party) else '失败'
+            self.battle_report['rounds'] += 1
+            battle_over = False
+            
+            # 检查战斗结果
+            if all(not e.is_alive for e in self.enemies):
+                self.battle_report['result'] = '胜利'  # 明确设置结果
+                self.game_state.change_scene(MainScene())
                 return
+            elif all(not h.is_alive for h in self.party):
+                self.battle_report['result'] = '失败'  # 明确设置结果
+                self.game_state.change_scene(MainScene())
+                return
+            
+            # ... 原有战斗循环代码 ...
  
