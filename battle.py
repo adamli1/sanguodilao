@@ -170,21 +170,5 @@ class BattleSystem:
             else:
                 hero.add_exp(exp_per_hero // 2)  # 阵亡获得一半经验
 
-    def battle_loop(self):
-        self.determine_order()
-        while True:
-            self.battle_report['rounds'] += 1
-            battle_over = False
-            
-            # 检查战斗结果
-            if all(not e.is_alive for e in self.enemies):
-                self.battle_report['result'] = '胜利'
 
-                return
-            elif all(not h.is_alive for h in self.party):
-                self.battle_report['result'] = '失败'
-
-                return
-            
-            # ... 原有战斗循环代码 ...
  
