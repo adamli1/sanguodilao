@@ -193,8 +193,18 @@ class MainScene(Scene):
         # 横向排列
         x = start_x
         for hero in game.party:
-            # 头像背景
-            pygame.draw.rect(surface, (80, 80, 100), (x, start_y, icon_size, icon_size), border_radius=5)
+            # 根据稀有度设置边框颜色
+            rarity_colors = {
+                "UR": (255, 165, 0),    # 橙色
+                "SSR": (128, 0, 128),   # 紫色
+                "SR": (0, 0, 255),      # 蓝色
+                "R": (0, 255, 0)        # 绿色
+            }
+            border_color = rarity_colors.get(hero.rarity, (80, 80, 100))
+            
+            # 头像背景（带稀有度边框）
+            pygame.draw.rect(surface, border_color, (x, start_y, icon_size, icon_size), border_radius=5)
+            pygame.draw.rect(surface, (80, 80, 100), (x+2, start_y+2, icon_size-4, icon_size-4), border_radius=5)
             
             # 显示首字（临时替代头像）
             initial = hero.name[0]  # 取名字首字
@@ -884,6 +894,16 @@ class HeroScene(Scene):
             hero = self.selected_hero
             panel_rect = pygame.Rect(500, 100, 600, 500)
             pygame.draw.rect(surface, COLORS["panel"], panel_rect, border_radius=10)
+            
+            # 添加稀有度边框
+            rarity_colors = {
+                "UR": (255, 165, 0),
+                "SSR": (128, 0, 128),
+                "SR": (0, 0, 255),
+                "R": (0, 255, 0)
+            }
+            border_color = rarity_colors.get(hero.rarity, (100, 100, 150))
+            pygame.draw.rect(surface, border_color, panel_rect.inflate(10, 10), border_radius=10, width=3)
             
             y = 120
             # 英雄名称

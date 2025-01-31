@@ -358,7 +358,8 @@ class Game:
                 troops=selected_hero["troops"],
                 strength=selected_hero["strength"],
                 intelligence=selected_hero["intelligence"],
-                agility=selected_hero["agility"]
+                agility=selected_hero["agility"],
+                rarity=selected_rarity  # 添加稀有度参数
             )
             new_hero.skills.append(SKILL_LIBRARY[selected_hero["skill"]])
             

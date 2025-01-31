@@ -37,8 +37,9 @@ class Character:
 
 class Hero(Character):
     """英雄类"""
-    def __init__(self, name, troops, strength, intelligence, agility):
+    def __init__(self, name, troops, strength, intelligence, agility, rarity="R"):
         super().__init__(name, troops, strength, intelligence, agility)
+        self.rarity = rarity  # 新增稀有度属性
         self.exp = 0
         self.level = 3
         self.base_max_troops = troops  # 新增基础兵力
