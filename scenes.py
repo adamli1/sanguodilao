@@ -79,12 +79,12 @@ class MainScene(Scene):
         horizontal_spacing = 150  # 缩小间距以适应更多按钮
         
         self.buttons = [
-            Button((200, start_y, button_width, button_height), "建筑系统", lambda: game_state.change_scene(BuildScene())),
-            Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: game_state.change_scene(ExploreScene())),
-            Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: game_state.change_scene(PartyScene())),
-            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", lambda: game_state.change_scene(MapSelectScene())),
-            Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: game_state.change_scene(HeroScene())),
-            Button((200 + horizontal_spacing*5, start_y, button_width, button_height), "背包", lambda: game_state.change_scene(InventoryScene()))
+            Button((200, start_y, button_width, button_height), "建筑系统", lambda: scene_manager.change_scene(BuildScene())),
+            Button((200 + horizontal_spacing, start_y, button_width, button_height), "英雄探索", lambda: scene_manager.change_scene(ExploreScene())),
+            Button((200 + horizontal_spacing*2, start_y, button_width, button_height), "编队管理", lambda: scene_manager.change_scene(PartyScene())),
+            Button((200 + horizontal_spacing*3, start_y, button_width, button_height), "开始战斗", lambda: scene_manager.change_scene(MapSelectScene())),
+            Button((200 + horizontal_spacing*4, start_y, button_width, button_height), "英雄详情", lambda: scene_manager.change_scene(HeroScene())),
+            Button((200 + horizontal_spacing*5, start_y, button_width, button_height), "背包", lambda: scene_manager.change_scene(InventoryScene()))
         ]
         
         self.player_pos = [SCREEN_WIDTH//2, SCREEN_HEIGHT//2]  # 新增：玩家初始位置
@@ -96,7 +96,7 @@ class MainScene(Scene):
         if not game.party:
             return
         game.generate_enemies()
-        game_state.change_scene(BattleScene(game_state))  # 传递game_state参数
+        scene_manager.change_scene(BattleScene(scene_manager))  # 传递scene_manager参数
 
     def handle_events(self, events):
         # 检测玩家是否在城池范围内
@@ -119,7 +119,7 @@ class MainScene(Scene):
         
         # 处理空格键进入建筑场景
         if keys[K_SPACE] and self.in_city:
-            game_state.change_scene(BuildScene())
+            scene_manager.change_scene(BuildScene())
         
         # 原有鼠标事件处理
         for event in events:
@@ -253,7 +253,7 @@ class BuildScene(Scene):
     }
 
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.heal_btn = Button((200, 600, 200, 40), 
             lambda: f"治疗部队（需食物:{game.buildings['兵营']['heal_cost']['粮草']*game.buildings['兵营']['level']})",
             self.heal_troops)
@@ -487,7 +487,7 @@ class BuildScene(Scene):
 
 class PartyScene(Scene):
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.selection = None
         self.buttons = []
         self.refresh_ui()
@@ -554,18 +554,18 @@ class PartyScene(Scene):
         surface.blit(tip_text, (100, 550))
 
 class BattleScene(Scene):
-    def __init__(self, game_state):
+    def __init__(self, scene_manager):
         super().__init__()
         self.battle_system = BattleSystem(
             game.party, 
             game.current_enemies,
-            game,      # 传递game实例
-            game_state # 传递game_state实例
+            game,      
+            scene_manager  # 使用新名称
         )
-        self.game_state = game_state  # 保存引用
+        self.scene_manager = scene_manager  # 修改属性名称
         self.turn_idx = 0
         self.battle_result = None  # 用于存储战斗结果
-        self.back_button = Button((50, 600, 200, 50), "返回主界面", lambda: game_state.change_scene(MainScene()))
+        self.back_button = Button((50, 600, 200, 50), "返回主界面", lambda: scene_manager.change_scene(MainScene()))
         self.battle_over = False  # 标记战斗是否结束
         self.round_count = 1  # 当前回合数
         self.damage_numbers = []  # 存储伤害数值信息 (pos, value, duration)
@@ -928,7 +928,7 @@ class BattleScene(Scene):
 # 添加新的探索场景
 class ExploreScene(Scene):
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.explore_btn = Button((SCREEN_WIDTH//2 - 75, 500, 150, 50), "开始探索", self.do_explore)
         self.result = None
 
@@ -994,7 +994,7 @@ class ExploreScene(Scene):
 # 在Scene类之后添加新的英雄场景
 class HeroScene(Scene):
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.selected_hero = None
         self.hero_buttons = []
         self.refresh_hero_list()
@@ -1077,7 +1077,7 @@ class HeroScene(Scene):
 
 class InventoryScene(Scene):
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.tabs = [
             {"name": "材料卡", "rect": pygame.Rect(150, 100, 150, 40)},
             {"name": "消耗品", "rect": pygame.Rect(350, 100, 150, 40)},
@@ -1188,7 +1188,7 @@ class InventoryScene(Scene):
 
 class MapSelectScene(Scene):
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: game_state.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
         self.maps = [
             {
                 "name": "黄巾起义",
@@ -1284,7 +1284,7 @@ class MapSelectScene(Scene):
         game.selected_map = map_info
         game.generate_enemies(map_info)
         self.error_message = None  # 清空错误提示
-        game_state.change_scene(BattleScene(game_state))
+        scene_manager.change_scene(BattleScene(scene_manager))
 
 # 创建场景管理器
 class GameState:
@@ -1294,7 +1294,7 @@ class GameState:
     def change_scene(self, new_scene):
         self.current_scene = new_scene
 
-game_state = GameState()
+scene_manager = GameState()
 
 # 初始化游戏实例
 game = Game()
@@ -1309,13 +1309,13 @@ while running:
             running = False
             
     # 处理场景事件
-    game_state.current_scene.handle_events(events)
+    scene_manager.current_scene.handle_events(events)
     
     # 更新场景
-    game_state.current_scene.update()
+    scene_manager.current_scene.update()
     
     # 绘制场景
-    game_state.current_scene.draw(screen)
+    scene_manager.current_scene.draw(screen)
     
     pygame.display.flip()
     clock.tick(FPS)
