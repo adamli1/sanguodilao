@@ -152,38 +152,29 @@ class MainScene(Scene):
             tip_text = FONT_SM.render("进入主城", True, (200, 200, 0))
             surface.blit(tip_text, (self.city_rect.centerx - 100, self.city_rect.bottom + 10))
         
-        # 绘制资源面板（顶部横排） - 修改这部分
-        panel_height = 40  # 进一步降低面板高度
+        # 绘制资源面板（顶部横排）
+        panel_height = 40
         pygame.draw.rect(surface, COLORS["panel"], (0, 0, SCREEN_WIDTH, panel_height))
         
-        # 新参数设置
-        icon_size = 20       # 图标尺寸
-        text_margin = 5      # 图标与数值间距
-        item_spacing = 35    # 资源项间距加大
-        start_margin = 15    # 左侧起始边距
-        current_x = start_margin  # 当前绘制位置
+        icon_size = 20
+        text_margin = 5
+        item_spacing = 35
+        start_margin = 15
+        current_x = start_margin
+        value_font = pygame.font.Font(None, 20)
         
-        # 使用更小字体
-        value_font = pygame.font.Font(None, 20)  # 新建小号字体
-        # 或者使用预设的 FONT_SM（如果已定义合适大小）
-
         for res_name, value in game.resources.items():
-            # 绘制图标
             if res_name in ICONS:
                 icon = pygame.transform.scale(ICONS[res_name], (icon_size, icon_size))
                 icon_y = (panel_height - icon_size) // 2
                 surface.blit(icon, (current_x, icon_y))
             
-            # 绘制数值（支持8位数）
-            value_text = f"{value:8d}"  # 格式化为8位宽度
+            value_text = f"{value:8d}"
             value_surf = value_font.render(value_text, True, COLORS["text"])
             value_y = (panel_height - value_surf.get_height()) // 2
-            
-            # 数值位置（图标右侧）
             value_x = current_x + icon_size + text_margin
             surface.blit(value_surf, (value_x, value_y))
             
-            # 更新下一个资源项位置
             current_x += icon_size + text_margin + value_surf.get_width() + item_spacing
 
         # 调整英雄显示到右上角（资源栏下方）
@@ -253,26 +244,28 @@ class BuildScene(Scene):
     }
 
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", 
-            lambda: scene_manager.change_scene(MainScene()))
-        self.heal_btn = Button((200, 600, 200, 40), 
-            lambda: f"治疗部队（需食物:{game.buildings['兵营']['heal_cost']['粮草']*game.buildings['兵营']['level']})",
-            self.heal_troops)
+        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
+        self.heal_btn = Button(
+            (200, 600, 200, 40),
+            lambda: f"征募士兵（需粮草:{game.recruit_cost}）",  # 动态显示消耗
+            self.handle_recruit
+        )
         self.selected_building = None
         self.confirm_rect = None
         self.confirm_buttons = []
         self.unlock_rect = None  # 新增解锁需求弹窗
+        self.status_message = None  # 新增状态消息
 
-    def heal_troops(self):
-        """治疗部队方法（适配新机制）"""
-        cost = game.buildings['兵营']['heal_cost']['粮草'] * game.buildings['兵营']['level']
-        if game.resources['粮草'] >= cost:
-            game.resources['粮草'] -= cost
-            for hero in game.party:
-                # 恢复至当前等级上限
-                hero.troops = hero.level * 10  
-            return True, "治疗成功"
-        return False, "粮草不足"
+    def handle_recruit(self):
+        """处理征募操作"""
+        success, msg = game.recruit_reserves()
+        self.show_status_message(msg)
+
+    def show_status_message(self, msg):
+        """显示操作结果"""
+        self.status_message = msg
+        # 2秒后清除消息
+        pygame.time.set_timer(USEREVENT+1, 2000, True)
 
     def refresh_buttons(self):
         """仅更新治疗按钮状态"""
@@ -459,6 +452,33 @@ class BuildScene(Scene):
 
     def draw(self, surface):
         surface.fill(COLORS["background"])
+        
+        # 与主场景完全一致的资源面板 ========
+        panel_height = 40
+        pygame.draw.rect(surface, COLORS["panel"], (0, 0, SCREEN_WIDTH, panel_height))
+        
+        icon_size = 20
+        text_margin = 5
+        item_spacing = 35
+        start_margin = 15
+        current_x = start_margin
+        value_font = pygame.font.Font(None, 20)  # 确保字体对象一致
+        
+        for res_name, value in game.resources.items():
+            if res_name in ICONS:
+                icon = pygame.transform.scale(ICONS[res_name], (icon_size, icon_size))
+                icon_y = (panel_height - icon_size) // 2
+                surface.blit(icon, (current_x, icon_y))
+            
+            value_text = f"{value:8d}"
+            value_surf = value_font.render(value_text, True, COLORS["text"])
+            value_y = (panel_height - value_surf.get_height()) // 2
+            value_x = current_x + icon_size + text_margin
+            surface.blit(value_surf, (value_x, value_y))
+            
+            current_x += icon_size + text_margin + value_surf.get_width() + item_spacing
+        # ======== 资源面板结束 ========
+        
         self.back_btn.draw(surface)
         self.heal_btn.draw(surface)
         
@@ -485,6 +505,22 @@ class BuildScene(Scene):
             overlay.fill((0, 0, 0, 128))
             surface.blit(overlay, (0,0))
             self.draw_confirmation(surface)  # 确保调用绘制确认弹窗的方法
+
+        # 新增：右下角预备兵显示（确保在最后绘制）
+        reserve_text = FONT_SM.render(
+            f"预备兵: {game.reserve_troops}/{game.max_reserve}",
+            True, 
+            (200, 200, 200)  # 灰色
+        )
+        text_rect = reserve_text.get_rect(bottomright=(SCREEN_WIDTH-20, SCREEN_HEIGHT-40))
+        surface.blit(reserve_text, text_rect)
+
+        # 新增：状态提示（在预备兵信息之上绘制）
+        if self.status_message:
+            msg_color = (0, 200, 0) if "成功" in self.status_message else (200, 0, 0)
+            msg_surf = FONT_SM.render(self.status_message, True, msg_color)
+            msg_rect = msg_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT-100))
+            surface.blit(msg_surf, msg_rect)
 
 class PartyScene(Scene):
     def __init__(self):
