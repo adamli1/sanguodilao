@@ -25,6 +25,8 @@ class BattleSystem:
         }
         # 记录初始兵力
         self._record_initial_troops(party + enemies)
+        self.loot_display = []  # 新增掉落物品显示列表
+        self.loot_messages = []  # 新增掉落信息存储
 
     def _record_initial_troops(self, combatants):
         """记录初始兵力"""
@@ -185,6 +187,28 @@ class BattleSystem:
         others = {"神秘碎片": 1}
         
         self.game.add_battle_loot(consumables, materials, others)
+
+        # 生成掉落提示信息
+        self.loot_messages = []
+        if consumables.get("探索卡", 0) > 0:
+            self.loot_messages.append(f"探索卡 x{consumables['探索卡']}")
+        if materials:
+            name, count = next(iter(materials.items()))
+            self.loot_messages.append(f"{name}材料 x{count}")
+        if others.get("神秘碎片", 0) > 0:
+            self.loot_messages.append(f"神秘碎片 x{others['神秘碎片']}")
+
+    def get_loot_messages(self):
+        """获取掉落物品提示信息"""
+        return self.loot_messages.copy()
+
+    def check_battle_result(self):
+        if all(not e.is_alive for e in self.enemies):
+            self.distribute_exp()  # 确保先调用掉落分配
+            return "win"
+        elif all(not h.is_alive for h in self.party):
+            return "lose"
+        return None
 
 
  

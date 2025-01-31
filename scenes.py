@@ -790,6 +790,22 @@ class BattleScene(Scene):
             text = FONT_SM.render(value, True, (255, 0, 255))
             surface.blit(text, (pos[0]+20, pos[1]-60 - d))        
 
+        # 绘制掉落物品提示
+        if self.battle_over and self.battle_result == "win":
+            # 绘制掉落信息
+            info_rect = pygame.Rect(50, 400, SCREEN_WIDTH-100, 100)
+            pygame.draw.rect(surface, (50, 50, 70, 200), info_rect, border_radius=8)
+            
+            text_y = 420
+            title = FONT_SM.render("获得物品：", True, (200, 200, 0))
+            surface.blit(title, (70, text_y))
+            
+            text_y += 30
+            for msg in self.battle_system.loot_messages:
+                item_text = FONT_SM.render(msg, True, (100, 255, 100))
+                surface.blit(item_text, (100, text_y))
+                text_y += 25
+
         # 战斗结果界面
         if self.battle_over and not self.show_report:
             result_text = "战斗胜利！" if self.battle_result == "win" else "战斗失败！"
