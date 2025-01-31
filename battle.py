@@ -19,7 +19,12 @@ class BattleSystem:
     def basic_attack(self, attacker, defender):
         """普通攻击并概率触发技能"""
         # 普通攻击
-        damage = max(1, attacker.strength - defender.agility//2)
+        base_damage = max(1, attacker.strength - defender.agility//2)
+        
+        # 平滑后的兵力比例系数（使用平方根函数）
+        ratio = (attacker.troops / max(1, defender.troops)) ** 0.5  # 修改点
+        damage = int(base_damage * ratio)
+        
         defender.troops = max(0, defender.troops - damage)
 
         # 添加伤害数字显示
@@ -49,6 +54,11 @@ class BattleSystem:
         # 计算效果值
         scale_value = attacker.strength if skill["scale"] == "strength" else attacker.intelligence
         effect_value = int(skill["base"] + scale_value * skill["coef"])
+        
+        # 添加平滑后的兵力比例系数（仅对敌方生效）
+        if skill["target"] == "enemy":
+            ratio = (attacker.troops / max(1, defender.troops)) ** 0.5  # 修改点
+            effect_value = int(effect_value * ratio)
         
         # 添加伤害数字显示
         if skill["target"] == "enemy":
