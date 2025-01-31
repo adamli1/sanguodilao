@@ -253,7 +253,8 @@ class BuildScene(Scene):
     }
 
     def __init__(self):
-        self.back_btn = Button((50, 600, 100, 40), "返回", lambda: scene_manager.change_scene(MainScene()))
+        self.back_btn = Button((50, 600, 100, 40), "返回", 
+            lambda: scene_manager.change_scene(MainScene()))
         self.heal_btn = Button((200, 600, 200, 40), 
             lambda: f"治疗部队（需食物:{game.buildings['兵营']['heal_cost']['粮草']*game.buildings['兵营']['level']})",
             self.heal_troops)
@@ -556,13 +557,13 @@ class PartyScene(Scene):
 class BattleScene(Scene):
     def __init__(self, scene_manager):
         super().__init__()
+        self.scene_manager = scene_manager
         self.battle_system = BattleSystem(
             game.party, 
             game.current_enemies,
             game,      
             scene_manager  # 使用新名称
         )
-        self.scene_manager = scene_manager  # 修改属性名称
         self.turn_idx = 0
         self.battle_result = None  # 用于存储战斗结果
         self.back_button = Button((50, 600, 200, 50), "返回主界面", lambda: scene_manager.change_scene(MainScene()))
@@ -1287,14 +1288,14 @@ class MapSelectScene(Scene):
         scene_manager.change_scene(BattleScene(scene_manager))
 
 # 创建场景管理器
-class GameState:
+class SceneManager:
     def __init__(self):
         self.current_scene = MainScene()
         
     def change_scene(self, new_scene):
         self.current_scene = new_scene
 
-scene_manager = GameState()
+scene_manager = SceneManager()
 
 # 初始化游戏实例
 game = Game()

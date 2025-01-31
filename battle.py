@@ -10,11 +10,11 @@ from collections import defaultdict
     # （由于篇幅限制，具体方法实现此处省略，保持原样即可）
 
 class BattleSystem:
-    def __init__(self, party, enemies, game, game_state):
+    def __init__(self, party, enemies, game, scene_manager):
         self.party = party
         self.enemies = enemies
         self.game = game        # 数据操作
-        self.game_state = game_state  # 场景操作
+        self.scene_manager = scene_manager  # 场景操作
         self.turn_order = []  # 行动顺序队列
         self.last_action = None  # 新增属性记录最后动作
         # 新增战斗报告数据
@@ -66,9 +66,9 @@ class BattleSystem:
         defender.troops = max(0, defender.troops - damage)
 
         # 添加伤害数字显示
-        if self.game_state.current_scene.__class__.__name__ == "BattleScene":
-            self.game_state.current_scene.add_damage_number(defender, damage)
-            self.game_state.current_scene.add_attack_animation(attacker, defender)
+        if self.scene_manager.current_scene.__class__.__name__ == "BattleScene":
+            self.scene_manager.current_scene.add_damage_number(defender, damage)
+            self.scene_manager.current_scene.add_attack_animation(attacker, defender)
 
         print(f"{attacker.name} 对 {defender.name} 造成 {damage} 伤害")
         self.print_combatant_status(defender)
@@ -105,15 +105,15 @@ class BattleSystem:
         if skill["target"] == "enemy":
             target.troops = max(0, target.troops - effect_value)
             print(f"✨ {attacker.name} 触发 {skill['name']} 对 {target.name} 造成 {effect_value} 伤害！")
-            if self.game_state.current_scene.__class__.__name__ == "BattleScene":
-                self.game_state.current_scene.add_skill_damage_number(target, effect_value)
+            if self.scene_manager.current_scene.__class__.__name__ == "BattleScene":
+                self.scene_manager.current_scene.add_skill_damage_number(target, effect_value)
                
         else:
             # 治疗数值显示
             target.troops = min(target.max_troops, target.troops + effect_value)
             print(f"✨ {attacker.name} 触发 {skill['name']} 为 {target.name} 恢复 {effect_value} 兵力！")
-            if self.game_state.current_scene.__class__.__name__ == "BattleScene":              
-                self.game_state.current_scene.add_skill_damage_number(target, effect_value)
+            if self.scene_manager.current_scene.__class__.__name__ == "BattleScene":              
+                self.scene_manager.current_scene.add_skill_damage_number(target, effect_value)
                
         
         self.print_combatant_status(target)

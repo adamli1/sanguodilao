@@ -418,3 +418,7 @@ class Game:
             self.materials[hero] = self.materials.get(hero, 0) + amount
         for item, amount in others.items():
             self.other_items[item] = self.other_items.get(item, 0) + amount
+
+    def set_scene_manager(self, scene_manager):
+        """注入场景管理器"""
+        self.scene_manager = scene_manager
